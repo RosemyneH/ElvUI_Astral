@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.35](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.35) (2026-09-06)
+
+### Features
+
+* Stock 3.3.5 nameplates scan WorldFrame when AwesomeWotLK is missing (`/eplates` to switch)
+* Missing AwesomeWotLK popup points to Discord `#how-to-connect` and the lag-fix DLL path
+
+### Fixes
+
+* Nameplate elements no longer error when a plate has no unit token
+* GM chat icon hook returns early if `UnitName` is called without a unit
+
 ## [7.34](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.34) (2026-09-06)
 
 ### Features
