@@ -271,35 +271,7 @@ if not C_NamePlate.GetNamePlates then
 	end
 end
 
-C_NamePlateManager = C_NamePlateManager or {}
-if not C_NamePlateManager.GetNamePlateSize then
-	function C_NamePlateManager.GetNamePlateSize()
-		return nil
-	end
-end
-if not C_NamePlateManager.SetNamePlateSize then
-	function C_NamePlateManager.SetNamePlateSize() end
-end
-if not C_NamePlateManager.SetNamePlateFriendlySize then
-	function C_NamePlateManager.SetNamePlateFriendlySize() end
-end
-if not C_NamePlateManager.SetNamePlateEnemySize then
-	function C_NamePlateManager.SetNamePlateEnemySize() end
-end
-if not C_NamePlateManager.SetEnableResizeNamePlates then
-	function C_NamePlateManager.SetEnableResizeNamePlates() end
-end
-if not C_NamePlateManager.CheckNamePlateMotion then
-	function C_NamePlateManager.CheckNamePlateMotion() end
-end
-if not C_NamePlateManager.IsNamePlateMoving then
-	function C_NamePlateManager.IsNamePlateMoving()
-		return false
-	end
-end
-if not C_NamePlateManager.ApplyFPSIncrease then
-	function C_NamePlateManager.ApplyFPSIncrease() end
-end
+-- ʕ •ᴥ•ʔ✿ C_NamePlateManager is not 3.3.5a or AwesomeWotLK; do not stub it ✿ ʕ •ᴥ•ʔ
 
 if not C_Quest then
 	C_Quest = {}
@@ -308,11 +280,21 @@ if not C_Quest then
 	end
 end
 
-do
-	local tex = UIParent:CreateTexture()
-	tex:Hide()
-	local mt = getmetatable(tex)
-	if mt and type(mt.__index) == "table" then
+-- ʕ •ᴥ•ʔ✿ 3.3.5 widgets have Show/Hide, not SetShown ✿ ʕ •ᴥ•ʔ
+local function PatchWidgetAPI(obj)
+	if not obj then return end
+	local mt = getmetatable(obj)
+	if not mt or type(mt.__index) ~= "table" then return end
+	if not mt.__index.SetShown then
+		mt.__index.SetShown = function(self, shown)
+			if shown then
+				self:Show()
+			else
+				self:Hide()
+			end
+		end
+	end
+	if obj.SetTexture then
 		if not mt.__index.SetColorTexture then
 			mt.__index.SetColorTexture = function(self, r, g, b, a)
 				return self:SetTexture(r, g, b, a)
@@ -326,6 +308,64 @@ do
 				return self:SetTexture(atlas)
 			end
 		end
+		if not mt.__index.GetAtlas then
+			mt.__index.GetAtlas = function()
+				return nil
+			end
+		end
+	end
+end
+
+do
+	local frame = CreateFrame("Frame")
+	frame:Hide()
+	PatchWidgetAPI(frame)
+	local tex = UIParent:CreateTexture()
+	tex:Hide()
+	PatchWidgetAPI(tex)
+	local fs = UIParent:CreateFontString()
+	fs:Hide()
+	PatchWidgetAPI(fs)
+	local bar = CreateFrame("StatusBar")
+	bar:Hide()
+	PatchWidgetAPI(bar)
+end
+
+if not SetNamePlateCastBarMode then
+	function SetNamePlateCastBarMode() end
+end
+
+if not GetUnitBattlefieldFaction then
+	function GetUnitBattlefieldFaction(unit)
+		return UnitFactionGroup(unit)
+	end
+end
+
+if not UnitInVehicle then
+	function UnitInVehicle()
+		return false
+	end
+end
+
+if not UnitIsPVPSanctuary then
+	function UnitIsPVPSanctuary()
+		return false
+	end
+end
+
+if not UnitIsTrivial then
+	function UnitIsTrivial()
+		return false
+	end
+end
+
+if not GetCreatureIDFromGUID then
+	function GetCreatureIDFromGUID(guid)
+		if type(guid) ~= "string" then return end
+		if strfind(guid, "-", 1, true) then
+			return tonumber((select(6, strsplit("-", guid))))
+		end
+		return tonumber(strsub(guid, 9, 12), 16)
 	end
 end
 
