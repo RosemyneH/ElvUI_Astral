@@ -1,14 +1,15 @@
 <div align="center">
 
-# Astral
+# ElvUI for Project Astral
 
-**ElvUI for World of Warcraft 3.3.5a**
+This is **not** a generic ElvUI fork that happens to be named Astral.
 
-A clean, complete UI replacement pack — ElvUI plus the extras you actually use.
+It is an ElvUI pack built **for the Project Astral World of Warcraft 3.3.5a realm** — stock Wrath clients, the Project Astral hub and skill tree, AwesomeWotLK when present, and no Ascension-only APIs.
 
 <br/>
 
 [![WoW](https://img.shields.io/badge/WoW-3.3.5a-6f42c1?style=flat-square)](#)
+[![For](https://img.shields.io/badge/for-Project%20Astral-1784d1?style=flat-square)](#)
 [![License](https://img.shields.io/badge/license-GPL--2.0-blue?style=flat-square)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/RosemyneH/ElvUI_Astral?style=flat-square&label=release)](https://github.com/RosemyneH/ElvUI_Astral/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/RosemyneH/ElvUI_Astral/total?style=flat-square)](https://github.com/RosemyneH/ElvUI_Astral/releases)
@@ -32,7 +33,7 @@ A clean, complete UI replacement pack — ElvUI plus the extras you actually use
 </div>
 
 1. Download the zip from the [latest release](https://github.com/RosemyneH/ElvUI_Astral/releases/latest).
-2. Extract every `ElvUI*` folder into `Interface\AddOns`.
+2. Extract every `ElvUI*` folder into `Interface\AddOns` on your **Project Astral** client.
 3. Restart World of Warcraft and run `/ec`.
 
 Keep the folder names as they are. Do not nest them inside another directory.
@@ -81,6 +82,6 @@ Every merge to `main` is scanned for [Conventional Commits](https://www.conventi
 
 Released under the [GNU General Public License v2.0](LICENSE).
 
-ElvUI originally by **Elv** and **Bunny**, with Astral pack maintenance on top.
+ElvUI originally by **Elv** and **Bunny**. This pack is maintained for **Project Astral**, not as a standalone ElvUI rebrand.
 
 </div>
