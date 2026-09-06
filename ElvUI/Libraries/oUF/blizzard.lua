@@ -56,31 +56,48 @@ local function handleFrame(baseName)
 end
 
 function oUF:DisableBlizzardNamePlate(nameplate)
-	-- we have to preserve the base frame since the unit frame will attach to it
+	-- ʕ •ᴥ•ʔ✿ Friendly plates often have no health/cast children on 3.3.5 ✿ ʕ •ᴥ•ʔ
+	if not nameplate or nameplate.__elvBlizzDisabled then return end
+	nameplate.__elvBlizzDisabled = true
+
 	local blizzElements = {nameplate:GetRegions()}
-	local healthBar, castBar = nameplate:GetChildren()
-	tinsert(blizzElements, healthBar)
+	local healthBar, castBar
+	for _, child in ipairs({nameplate:GetChildren()}) do
+		if child and not child.isNamePlate then
+			tinsert(blizzElements, child)
+			if child.GetStatusBarTexture then
+				if not healthBar then
+					healthBar = child
+				elseif not castBar then
+					castBar = child
+				end
+			end
+		end
+	end
 
 	nameplate.blizzHighlight = blizzElements[6]
 	nameplate.HealthBar = healthBar
 	nameplate.CastBar = castBar
 
 	for _, child in ipairs(blizzElements) do
-		child:SetParent(hiddenParent)
-		child:SetAlpha(0)
-		child:Hide()
-		if child.SetTexture then
-			child:SetTexture()
-		elseif child.SetStatusBarTexture then
-			child:SetStatusBarTexture(nil) -- this needs nil
+		if child then
+			child:SetParent(hiddenParent)
+			child:SetAlpha(0)
+			child:Hide()
+			if child.SetTexture then
+				child:SetTexture()
+			elseif child.SetStatusBarTexture then
+				child:SetStatusBarTexture(nil)
+			end
 		end
 	end
 
-	-- cast bar has to be special because we need onhide / onshow to fire still
-	castBar:SetParent(offScreenParent)
-	castBar:SetStatusBarTexture(nil)
-	castBar:SetAlpha(0)
-	castBar:Hide()
+	if castBar then
+		castBar:SetParent(offScreenParent)
+		castBar:SetStatusBarTexture(nil)
+		castBar:SetAlpha(0)
+		castBar:Hide()
+	end
 end
 
 function oUF:DisableBlizzard(unit)

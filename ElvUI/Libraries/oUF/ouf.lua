@@ -313,7 +313,7 @@ end
 local function onShow(self)
 	if self.isNamePlate then
 		local nameplate = C_NamePlate.GetNamePlateForUnit(self.unit)
-		if nameplate and C_NamePlateManager.IsNamePlateMoving(nameplate.unitFrame) then return end
+		if nameplate and C_NamePlateManager and C_NamePlateManager.IsNamePlateMoving and C_NamePlateManager.IsNamePlateMoving(nameplate.unitFrame) then return end
 	end
 	if(not updateActiveUnit(self, 'OnShow')) then
 		return self:UpdateAllElements('OnShow')
@@ -804,7 +804,9 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 		eventHandler:RegisterEvent('PLAYER_LOGIN')
 	end
 
-	C_NamePlateManager.SetEnableResizeNamePlates(true)
+	if C_NamePlateManager and C_NamePlateManager.SetEnableResizeNamePlates then
+		C_NamePlateManager.SetEnableResizeNamePlates(true)
+	end
 
 	local function SyncExistingNamePlates()
 		if type(C_NamePlate.GetNamePlateForUnit) ~= "function" then return end
@@ -850,7 +852,7 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 			nameplateUnitToFrame[unit] = nameplate
 
 			if(not nameplate.unitFrame) then
-				self:DisableBlizzardNamePlate(nameplate)
+				pcall(self.DisableBlizzardNamePlate, self, nameplate)
 				nameplate.style = style
 				nameplate.isNamePlate = true
 
@@ -858,10 +860,15 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 				nameplate.unitFrame:EnableMouse(false)
 				nameplate.unitFrame.isNamePlate = true
 				nameplate.unitFrame.nameplateAnchor = nameplate
+				nameplate.unitFrame:ClearAllPoints()
+				nameplate.unitFrame:SetAllPoints(nameplate)
+				nameplate.unitFrame:Show()
 
 				Private.UpdateUnits(nameplate.unitFrame, unit)
 				walkObject(nameplate.unitFrame, unit)
-				C_NamePlateManager.ApplyFPSIncrease(nameplate.unitFrame)
+				if C_NamePlateManager and C_NamePlateManager.ApplyFPSIncrease then
+					C_NamePlateManager.ApplyFPSIncrease(nameplate.unitFrame)
+				end
 			else
 				-- for _, child in ipairs(nameplate.blizzElements) do
 				-- 	ClearNamePlateElement(child)

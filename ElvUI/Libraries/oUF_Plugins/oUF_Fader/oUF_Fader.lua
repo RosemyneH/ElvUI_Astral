@@ -129,7 +129,7 @@ local function HoverScript(self)
 end
 
 local function TargetScript(self)
-	if self.isNamePlate and C_NamePlateManager.IsNamePlateMoving(self) then return end
+	if self.isNamePlate and C_NamePlateManager and C_NamePlateManager.IsNamePlateMoving and C_NamePlateManager.IsNamePlateMoving(self) then return end
 	if self.Fader and self.Fader.TargetHooked == 1 then
 		if self:IsShown() then
 			self.Fader:ForceUpdate()

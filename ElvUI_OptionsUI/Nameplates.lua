@@ -401,6 +401,8 @@ NamePlates.resetcvars = ACH:Execute(L["Reset CVars"], L["Reset Nameplate CVars t
 
 NamePlates.generalGroup = ACH:Group(L["General"], nil, 5, nil, nil, function(info, value) E.db.nameplates[info[#info]] = value NP:SetCVars() NP:ConfigureAll() end, function() return not E.NamePlates.Initialized end)
 NamePlates.generalGroup.args.motionType = ACH:Select(L["UNIT_NAMEPLATES_TYPES"], L["Set to either stack nameplates vertically or allow them to overlap."], 1, { OVERLAP = L["UNIT_NAMEPLATES_TYPE_1"], STACKED = L["UNIT_NAMEPLATES_TYPE_2"] })
+NamePlates.generalGroup.args.overlapH = ACH:Range(L["Overlap Horizontal"], nil, 1.1, { min = 0.1, max = 2, step = 0.01, isPercent = true })
+NamePlates.generalGroup.args.overlapV = ACH:Range(L["Overlap Vertical"], nil, 1.2, { min = 0.1, max = 2, step = 0.01, isPercent = true })
 NamePlates.generalGroup.args.showEnemyCombat = ACH:Select(L["Enemy Combat Toggle"], L["Control enemy nameplates toggling on or off when in combat."], 2, { DISABLED = L["Disable"], TOGGLE_ON = L["Toggle On While In Combat"], TOGGLE_OFF = L["Toggle Off While In Combat"] }, nil, nil, nil, function(info, value) E.db.nameplates[info[#info]] = value NP:PLAYER_REGEN_ENABLED() end)
 NamePlates.generalGroup.args.showFriendlyCombat = ACH:Select(L["Friendly Combat Toggle"], L["Control friendly nameplates toggling on or off when in combat."], 3, { DISABLED = L["Disable"], TOGGLE_ON = L["Toggle On While In Combat"], TOGGLE_OFF = L["Toggle Off While In Combat"] }, nil, nil, nil, function(info, value) E.db.nameplates[info[#info]] = value NP:PLAYER_REGEN_ENABLED() end)
 NamePlates.generalGroup.args.smoothbars = ACH:Toggle(L["Smooth Bars"], L["Bars will transition smoothly."], 4, nil, nil, 110)
@@ -410,7 +412,9 @@ NamePlates.generalGroup.args.loadDistance = ACH:Range(L["Load Distance"], L["Onl
 NamePlates.generalGroup.args.highlight = ACH:Toggle(L["Hover Highlight"], nil, 13, nil, nil, 125)
 
 NamePlates.generalGroup.args.spacer2 = ACH:Spacer(15, 'full')
-NamePlates.generalGroup.args.plateVisibility = ACH:Group(L["Visibility"], nil, 50)
+NamePlates.generalGroup.args.plateVisibility = ACH:Group(L["Visibility"], nil, 50, nil, function(info) return E.db.nameplates.visibility[info[#info]] end, function(info, value) E.db.nameplates.visibility[info[#info]] = value NP:SetCVars() NP:ConfigureAll() end)
+NamePlates.generalGroup.args.plateVisibility.args.showAll = ACH:Toggle(L["Always Show"], L["Show nameplates at all times, rather than only when units are in combat."], 1)
+NamePlates.generalGroup.args.plateVisibility.args.friendlyNPCs = ACH:Toggle(L["Friendly NPCs"], nil, 2, nil, nil, nil, function() return E.db.nameplates.visibility.friendly.npcs end, function(_, value) E.db.nameplates.visibility.friendly.npcs = value NP:SetCVars() NP:ConfigureAll() end)
 NamePlates.generalGroup.args.plateVisibility.args.enemyVisibility = ACH:MultiSelect(L["Enemy"], nil, 10, { guardians = L["Guardians"], pets = L["Pets"], totems = L["Totems"] }, nil, nil, function(_, key) return E.db.nameplates.visibility.enemy[key] end, function(_, key, value) E.db.nameplates.visibility.enemy[key] = value NP:SetCVars() NP:ConfigureAll() end, function() return not E.db.nameplates.visibility.showAll end)
 NamePlates.generalGroup.args.plateVisibility.args.friendlyVisibility = ACH:MultiSelect(L["Friendly"], nil, 15, { guardians = L["Guardians"], pets = L["Pets"], totems = L["Totems"] }, nil, nil, function(_, key) return E.db.nameplates.visibility.friendly[key] end, function(_, key, value) E.db.nameplates.visibility.friendly[key] = value NP:SetCVars() NP:ConfigureAll() end, function() return not E.db.nameplates.visibility.showAll end)
 

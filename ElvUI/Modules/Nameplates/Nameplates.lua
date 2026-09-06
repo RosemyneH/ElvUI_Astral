@@ -33,14 +33,13 @@ local UnitIsUnit = UnitIsUnit
 local UnitName = UnitName
 local UnitReaction = UnitReaction
 local UnitThreatSituation = UnitThreatSituation
-local C_NamePlateManager_SetNamePlateSize
-if not C_NamePlateManager.GetNamePlateSize then -- if this function isnt set, we are on old version still
-	C_NamePlateManager_SetNamePlateSize = function(width, height)
-		C_NamePlateManager.SetNamePlateFriendlySize(width, height)
-		C_NamePlateManager.SetNamePlateEnemySize(width, height)
+local function SetNamePlateSize(width, height)
+	local mgr = _G.C_NamePlateManager
+	if mgr then
+		if mgr.SetNamePlateFriendlySize then mgr.SetNamePlateFriendlySize(width, height) end
+		if mgr.SetNamePlateEnemySize then mgr.SetNamePlateEnemySize(width, height) end
+		if mgr.SetNamePlateSize then mgr.SetNamePlateSize(width, height) end
 	end
-else
-	C_NamePlateManager_SetNamePlateSize = C_NamePlateManager.SetNamePlateSize
 end
 local hooksecurefunc = hooksecurefunc
 
@@ -92,12 +91,66 @@ do
 	end
 end
 
+local ConsoleExec = ConsoleExec
+
+local function ForceCVar(name, value)
+	SetCVar(name, value)
+	pcall(ConsoleExec, name .. ' ' .. tostring(value))
+end
+
 function NP:SetCVar(cvar, value)
-	if GetCVar(cvar) ~= tostring(value) then
-		SetCVar(cvar, value)
-		if cvar == "nameplateSmoothStacking" then
-			C_NamePlateManager.CheckNamePlateMotion()
-			StaticPopup_Show("RELOAD_UI_NEEDED")
+	local new = tostring(value)
+	if GetCVar(cvar) == new then return end
+	ForceCVar(cvar, value)
+end
+
+function NP:ApplyMotionCVars()
+	local stacked = NP.db.motionType == 'STACKED'
+	local width = NP.db.plateSize.width or 150
+	local height = NP.db.plateSize.height or 30
+	local overlapH = NP.db.overlapH or 0.8
+	local overlapV = NP.db.overlapV or 1.1
+
+	-- ʕ •ᴥ•ʔ✿ Stock 3.3.5: nameplateAllowOverlap. AwesomeWotLK: nameplateStacking 0 = overlap ✿ ʕ •ᴥ•ʔ
+	ForceCVar('nameplateAllowOverlap', stacked and 0 or 1)
+	ForceCVar('nameplateStacking', stacked and 1 or 0)
+	ForceCVar('nameplateStackFriendly', stacked and 1 or 0)
+	ForceCVar('nameplateMotion', stacked and 1 or 0)
+
+	if stacked then
+		ForceCVar('nameplateBandX', overlapH)
+		ForceCVar('nameplateBandY', overlapV)
+		ForceCVar('nameplateXSpace', width * overlapH)
+		ForceCVar('nameplateYSpace', height * overlapV)
+		ForceCVar('nameplateOverlapH', overlapH)
+		ForceCVar('nameplateOverlapV', overlapV)
+	end
+
+	NP:ApplyAllPlateStacking()
+end
+
+function NP:SetNamePlateStacking(plate, stacked)
+	if not plate then return end
+	if plate.SetStackingEnabled then
+		pcall(plate.SetStackingEnabled, plate, stacked and true or false)
+	end
+end
+
+function NP:ApplyPlateStacking(nameplate)
+	if not nameplate then return end
+	local stacked = NP.db.motionType == 'STACKED'
+	NP:SetNamePlateStacking(nameplate.nameplateAnchor or nameplate, stacked)
+	NP:SetNamePlateStacking(nameplate, stacked)
+end
+
+function NP:ApplyAllPlateStacking()
+	local stacked = NP.db.motionType == 'STACKED'
+	local getPlates = C_NamePlate and C_NamePlate.GetNamePlates
+	if type(getPlates) ~= 'function' then return end
+	for _, plate in pairs(getPlates()) do
+		NP:SetNamePlateStacking(plate, stacked)
+		if plate.unitFrame then
+			NP:ApplyPlateStacking(plate.unitFrame)
 		end
 	end
 end
@@ -135,12 +188,16 @@ function NP:CVarReset()
 end
 
 function NP:SetCVars()
-	NP:SetCVar('nameplateSmoothStacking', NP.db.motionType == 'STACKED' and 1 or 0)
+	NP:ApplyMotionCVars()
 	NP:SetCVar('nameplateDistance', NP.db.loadDistance)
+	NP:SetCVar('nameplateShowAll', NP.db.visibility.showAll and 1 or 0)
 
 	-- the order of these is important !!
 	if not NP.db.visibility.friendly then
 		NP.db.visibility.friendly = {}
+	end
+	if not NP.db.visibility.enemy then
+		NP.db.visibility.enemy = {}
 	end
 	NP:SetCVar('nameplateShowEnemyGuardians', NP.db.visibility.enemy.guardians and 1 or 0)
 	NP:SetCVar('nameplateShowEnemyPets', NP.db.visibility.enemy.pets and 1 or 0)
@@ -148,8 +205,17 @@ function NP:SetCVars()
 	NP:SetCVar('nameplateShowFriendlyGuardians', NP.db.visibility.friendly.guardians and 1 or 0)
 	NP:SetCVar('nameplateShowFriendlyTotems', NP.db.visibility.friendly.totems and 1 or 0)
 	NP:SetCVar('nameplateShowFriendlyPets', NP.db.visibility.friendly.pets and 1 or 0)
+	NP:SetCVar('nameplateShowFriendlyNPCs', NP.db.visibility.friendly.npcs and 1 or 0)
 	NP:SetCVar('showVKeyCastbar', 1)
 	SetNamePlateCastBarMode(1)
+
+	-- ʕ •ᴥ•ʔ✿ Combat toggle owns these CVars when it isn't DISABLED ✿ ʕ •ᴥ•ʔ
+	if NP.db.showFriendlyCombat == 'DISABLED' then
+		NP:SetCVar('nameplateShowFriends', 1)
+	end
+	if NP.db.showEnemyCombat == 'DISABLED' then
+		NP:SetCVar('nameplateShowEnemies', 1)
+	end
 end
 
 function NP:PLAYER_REGEN_DISABLED()
@@ -516,7 +582,12 @@ function NP:ConfigureAll(init)
 
 	NP:StyleFilterConfigure() -- keep this at the top
 	NP:SetNamePlateSizes()
-	NP:PLAYER_REGEN_ENABLED()
+	NP:SetCVars()
+	if InCombatLockdown() then
+		NP:PLAYER_REGEN_DISABLED()
+	else
+		NP:PLAYER_REGEN_ENABLED()
+	end
 	NP:UpdateTargetPlate(_G.ElvNP_TargetClassPower)
 	NP:Update_StatusBars()
 
@@ -564,9 +635,23 @@ function NP:UpdatePlateType(nameplate)
 end
 
 function NP:UpdatePlateSize(nameplate)
-	nameplate.width, nameplate.height = NP.db.plateSize.width, NP.db.plateSize.height
-	C_NamePlateManager_SetNamePlateSize(nameplate.width, nameplate.height)
-	nameplate:Size(nameplate.width, nameplate.height)
+	local width, height = NP.db.plateSize.width, NP.db.plateSize.height
+	nameplate.width, nameplate.height = width, height
+	nameplate:Size(width, height)
+
+	local anchor = nameplate.nameplateAnchor
+	if anchor then
+		nameplate:ClearAllPoints()
+		nameplate:SetAllPoints(anchor)
+		-- ʕ •ᴥ•ʔ✿ Only enlarge the native plate for stacking collision; overlap uses default size ✿ ʕ •ᴥ•ʔ
+		if NP.db.motionType == 'STACKED' then
+			SetNamePlateSize(width, height)
+			anchor:SetWidth(width)
+			anchor:SetHeight(height)
+		end
+	end
+
+	NP:ApplyPlateStacking(nameplate)
 end
 
 
@@ -624,6 +709,7 @@ function NP:NamePlateCallBack(nameplate, event, unit)
 
 		NP:UpdatePlateType(nameplate)
 		NP:UpdatePlateSize(nameplate)
+		NP:ApplyPlateStacking(nameplate)
 
 		if not nameplate.RaisedElement:IsShown() then
 			nameplate.RaisedElement:Show()
@@ -685,7 +771,7 @@ end
 
 function NP:SetNamePlateSizes()
 	--if InCombatLockdown() then return end
-	C_NamePlateManager_SetNamePlateSize(NP.db.plateSize.width, NP.db.plateSize.height)
+	SetNamePlateSize(NP.db.plateSize.width, NP.db.plateSize.height)
 end
 
 function NP:Initialize()
