@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Author: Elv, Bunny
 # x-release-please-start-version
-## Version: 7.33.0
+## Version: 7.33
 # x-release-please-end
 ## Title: |cff1784d1E|r|cffe5e3e3lvUI|r
 ## Notes: User Interface replacement AddOn for World of Warcraft.

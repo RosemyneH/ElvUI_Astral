@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
-## [7.33.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.33.0) (2026-09-06)
+## [7.33](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.33) (2026-09-06)
 
 ### Fixes
 
