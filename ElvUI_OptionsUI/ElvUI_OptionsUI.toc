@@ -25,6 +25,7 @@ Tooltip.lua
 UnitFrames.lua
 DataBars.lua
 Maps.lua
+Astral.lua
 ModuleControl.lua
 Tags.lua
 Search.lua

@@ -19,6 +19,8 @@ local function ApplySelfTest(name, unit)
 end
 
 function E:InitializeGMIcon()
+	if not self:IsAstralEnabled() or self.private.astral.gmIcon == false then return end
+
 	local icon = E:GetGMChatIcon()
 	_G.CHAT_FLAG_GM = icon
 	_G.CHAT_FLAG_DEV = icon
@@ -81,5 +83,3 @@ SlashCmdList.ELVUIGMICON = function(msg)
 	DEFAULT_CHAT_FRAME:AddMessage("/egmicon self off - stop self name preview", 0.7, 0.7, 0.7)
 	DEFAULT_CHAT_FRAME:AddMessage("/egmicon target   - show hooked UnitName for target", 0.7, 0.7, 0.7)
 end
-
-E:InitializeGMIcon()

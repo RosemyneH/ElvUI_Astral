@@ -190,6 +190,7 @@ function AB:UpdateMicroButtons()
 end
 
 function AB:SetupAstralMicroButton()
+	if not E:IsAstralEnabled() or E.private.astral.microButton == false then return end
 	if _G.AstralMicroButton then return end
 
 	local button = CreateFrame("Button", "AstralMicroButton", ElvUI_MicroBar)

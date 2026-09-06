@@ -46,6 +46,10 @@ function E:InverseClassColor(class, usePriestColor, forceCap)
 	return color
 end
 
+function E:IsAstralEnabled()
+	return self.private and self.private.astral and self.private.astral.enable ~= false
+end
+
 do -- other non-english locales require this
 	E.UnlocalizedClasses = {}
 	for k, v in pairs(_G.LOCALIZED_CLASS_NAMES_MALE) do E.UnlocalizedClasses[v] = k end

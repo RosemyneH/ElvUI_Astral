@@ -8,11 +8,22 @@ end
 
 local gmChatIcon, gmNameIcon
 
+function E:UseAstralGMIcon()
+	return self:IsAstralEnabled() and self.private.astral.gmIcon ~= false
+end
+
 function E:GetGMChatIcon()
 	if not gmChatIcon then
 		gmChatIcon = self:TextureString(self.Media.Textures.Astral, ":28:28:0:0|t ")
 	end
 	return gmChatIcon
+end
+
+function E:GetGMChatIconForChat()
+	if self:UseAstralGMIcon() then
+		return self:GetGMChatIcon()
+	end
+	return _G.CHAT_FLAG_GM or ""
 end
 
 function E:GetGMNameIcon()

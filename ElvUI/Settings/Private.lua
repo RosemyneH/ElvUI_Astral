@@ -147,3 +147,13 @@ V.actionbar = {
 V.worldmap = {
 	enable = true
 }
+
+V.astral = {
+	enable = true,
+	gmIcon = true,
+	microButton = true,
+	hub = true,
+	transmog = true,
+	minimapButton = true,
+	popups = true,
+}

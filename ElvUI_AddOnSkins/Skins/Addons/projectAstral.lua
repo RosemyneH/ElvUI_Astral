@@ -106,10 +106,21 @@ end
 S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	if not E.private.addOnSkins.ProjectAstral then return end
 
+	local astral = E.private.astral
+	local function AstralOn(key)
+		if not E:IsAstralEnabled() then return false end
+		return astral[key] ~= false
+	end
+
+	if not (AstralOn("hub") or AstralOn("transmog") or AstralOn("minimapButton") or AstralOn("popups")) then
+		return
+	end
+
 	local PA = _G.ProjectAstral
 	if not PA or not PA.UI then return end
 	local UI = PA.UI
 
+	if AstralOn("hub") or AstralOn("transmog") or AstralOn("popups") then
 	UI.Color = MediaColor()
 	UI.CosmicCorners = E.noop
 	UI.AddStarfield = E.noop
@@ -441,7 +452,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	end
 
 	local origGainPopup = UI.GainPopup
-	if origGainPopup then
+	if AstralOn("popups") and origGainPopup then
 		UI.GainPopup = function(text, kind, opts)
 			local f = origGainPopup(text, kind, opts)
 			if f then
@@ -455,7 +466,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	end
 
 	local origLoading = UI.MakeLoadingOverlay
-	if origLoading then
+	if AstralOn("popups") and origLoading then
 		UI.MakeLoadingOverlay = function(parent, opts)
 			local o = origLoading(parent, opts)
 			if o then
@@ -473,6 +484,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 			or which:find("^TRANSMOG") or which:find("^NO_ITEM")
 	end
 
+	if AstralOn("popups") then
 	hooksecurefunc("StaticPopup_Show", function(which)
 		if not IsAstralPopup(which) then return end
 		for i = 1, 4 do
@@ -494,7 +506,10 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 			end
 		end
 	end)
+	end
+	end
 
+	if AstralOn("transmog") then
 	local transmogSlots = {
 		"Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist",
 		"Hands", "Waist", "Legs", "Feet", "MainHand", "SecondaryHand", "Ranged",
@@ -707,6 +722,59 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 				if slot.hideButton then slot.hideButton:Hide() end
 			end
 		end
+	end
+
+	local function GetTransmogSlotName(slot)
+		if not slot or not slot.GetName then return end
+		return slot:GetName():match("^TransmogCharacter(.+)Slot$")
+	end
+
+	local function ToggleHideTransmogEquipmentSlot(slot)
+		if not slot or not _G.previewTransmogrificationIDs then return end
+		local slotName = GetTransmogSlotName(slot)
+		if not slotName then return end
+
+		local equipSlot = slot:GetID()
+		if not equipSlot or not GetInventoryItemID("player", equipSlot) then
+			if _G.StaticPopup_Show then
+				_G.StaticPopupDialogs = _G.StaticPopupDialogs or {}
+				_G.StaticPopupDialogs.ELVUI_PA_NO_ITEM_TO_HIDE = {
+					text = "You must have an item equipped in this slot to hide its appearance.",
+					button1 = OKAY,
+					timeout = 0,
+					whileDead = true,
+					hideOnEscape = true,
+					preferredIndex = 3,
+				}
+				_G.StaticPopup_Show("ELVUI_PA_NO_ITEM_TO_HIDE")
+			end
+			return
+		end
+
+		if _G.previewTransmogrificationIDs[slotName] == 0 then
+			_G.previewTransmogrificationIDs[slotName] = nil
+			if PlaySound then PlaySound("Glyph_MinorCreate", "sfx") end
+		else
+			_G.previewTransmogrificationIDs[slotName] = 0
+			if PlaySound then PlaySound("ArcaneMissileImpacts", "sfx") end
+		end
+
+		if _G.LoadTransmogrificationsFromCurrentIDs then
+			_G.LoadTransmogrificationsFromCurrentIDs(true)
+		end
+		if _G.UpdateSlotTexture then
+			_G.UpdateSlotTexture(slotName, true, true)
+		end
+	end
+
+	local function HookTransmogSlotRightClick(slot)
+		if not slot or slot.__elvPARightClickHooked then return end
+		slot.__elvPARightClickHooked = true
+		slot:HookScript("OnMouseUp", function(self, button)
+			if button == "RightButton" then
+				ToggleHideTransmogEquipmentSlot(self)
+			end
+		end)
 	end
 
 	local function SetCardButtonIconVisible(button, visible)
@@ -1116,6 +1184,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 		if slot.restoreButton then slot.restoreButton:Hide() end
 		if slot.hideButton then slot.hideButton:Hide() end
 
+		HookTransmogSlotRightClick(slot)
 		slot.__elvPASkinned = true
 	end
 
@@ -1294,21 +1363,25 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	end
 	SkinTransmogrificationFrame()
 
-	if _G.PAMainMenuFrame then
+	end
+
+	if AstralOn("hub") and _G.PAMainMenuFrame then
 		UI.AstralBackdrop(_G.PAMainMenuFrame)
 		if _G.PAMainMenuFrame.sidebar then
 			UI.AstralBackdrop(_G.PAMainMenuFrame.sidebar)
 		end
 	end
 
-	local mini = _G.PAMinimapButton
-	if mini and not mini.__elvPA then
-		mini.__elvPA = true
-		mini:SetTemplate("Default")
-		local icon = mini:GetRegions()
-		if icon and icon.SetTexCoord then
-			icon:SetTexCoord(unpack(E.TexCoords))
-			if icon.SetInside then icon:SetInside() end
+	if AstralOn("minimapButton") then
+		local mini = _G.PAMinimapButton
+		if mini and not mini.__elvPA then
+			mini.__elvPA = true
+			mini:SetTemplate("Default")
+			local icon = mini:GetRegions()
+			if icon and icon.SetTexCoord then
+				icon:SetTexCoord(unpack(E.TexCoords))
+				if icon.SetInside then icon:SetInside() end
+			end
 		end
 	end
 end)

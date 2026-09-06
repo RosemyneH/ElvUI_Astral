@@ -1288,16 +1288,16 @@ function CH:ChatFrame_MessageEventHandler(frame, event, arg1, arg2, arg3, arg4, 
 					if chatType == "WHISPER" then
 						return
 					end
-					pflag = E:GetGMChatIcon()
+					pflag = E:GetGMChatIconForChat()
 				elseif arg6 == "DEV" then
-					pflag = E:GetGMChatIcon()
+					pflag = E:GetGMChatIconForChat()
 				elseif arg6 == "DND" or arg6 == "AFK" then
 					pflag = (pflag or "").._G["CHAT_FLAG_"..arg6]
 				else
 					pflag = _G["CHAT_FLAG_"..arg6] or ""
 				end
 				if type(pflag) == "string" and find(pflag, "|T", 1, true) then
-					pflag = E:GetGMChatIcon()
+					pflag = E:GetGMChatIconForChat()
 				end
 			else
 				-- Special Chat Icon
