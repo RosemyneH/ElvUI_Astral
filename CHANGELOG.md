@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.32.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.32.0) (2026-09-06)
+
+### Features
+
+* Master Astral toggle and per-module options under `/ec` → Astral
+* Granular control over GM icon, micro button, and Project Astral hub/transmog/popup skins
+
+### Fixes
+
+* GM icon initialization no longer errors before private settings load
+* Character menu (`C`) is skinned again with ElvUI Enhanced
+
 ## [7.31.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.31.0) (2026-09-05)
 
 ### Features
