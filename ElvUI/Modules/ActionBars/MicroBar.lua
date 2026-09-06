@@ -3,8 +3,10 @@ local AB = E:GetModule("ActionBars")
 
 --Lua functions
 local _G = _G
+local unpack = unpack
 --WoW API / Variables
 local CreateFrame = CreateFrame
+local GameTooltip = GameTooltip
 local InCombatLockdown = InCombatLockdown
 local RegisterStateDriver = RegisterStateDriver
 
@@ -56,6 +58,7 @@ function AB:HandleMicroButton(button)
 	local pushed = button:GetPushedTexture()
 	local normal = button:GetNormalTexture()
 	local disabled = button:GetDisabledTexture()
+	local highlight = button:GetHighlightTexture()
 
 	local f = CreateFrame("Frame", nil, button)
 	f:SetFrameLevel(button:GetFrameLevel() - 1)
@@ -64,20 +67,29 @@ function AB:HandleMicroButton(button)
 	button.backdrop = f
 
 	button:SetParent(ElvUI_MicroBar)
-	button:GetHighlightTexture():Kill()
+	if highlight then highlight:Kill() end
 	button:HookScript("OnEnter", onEnter)
 	button:HookScript("OnLeave", onLeave)
 	button:SetHitRectInsets(0, 0, 0, 0)
 	button:Show()
 
-	pushed:SetTexCoord(0.17, 0.87, 0.5, 0.908)
-	pushed:SetInside(f)
+	local l, r, t, b = 0.17, 0.87, 0.5, 0.908
+	if button.useFullIcon then
+		l, r, t, b = unpack(E.TexCoords)
+	end
 
-	normal:SetTexCoord(0.17, 0.87, 0.5, 0.908)
-	normal:SetInside(f)
+	if pushed then
+		pushed:SetTexCoord(l, r, t, b)
+		pushed:SetInside(f)
+	end
+
+	if normal then
+		normal:SetTexCoord(l, r, t, b)
+		normal:SetInside(f)
+	end
 
 	if disabled then
-		disabled:SetTexCoord(0.17, 0.87, 0.5, 0.908)
+		disabled:SetTexCoord(l, r, t, b)
 		disabled:SetInside(f)
 	end
 end
@@ -177,6 +189,37 @@ function AB:UpdateMicroButtons()
 	self:UpdateMicroPositionDimensions()
 end
 
+function AB:SetupAstralMicroButton()
+	if _G.AstralMicroButton then return end
+
+	local button = CreateFrame("Button", "AstralMicroButton", ElvUI_MicroBar)
+	button.useFullIcon = true
+	button:RegisterForClicks("AnyUp")
+
+	local icon = "Interface\\AddOns\\ProjectAstral\\astralhub"
+	button:SetNormalTexture(icon)
+	button:SetPushedTexture(icon)
+	button:SetHighlightTexture(icon)
+
+	button:SetScript("OnClick", function()
+		if _G.ProjectAstral and ProjectAstral.ToggleMainMenu then
+			ProjectAstral:ToggleMainMenu()
+		end
+	end)
+	button:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:SetText("Project Astral", 1, 0.82, 0)
+		GameTooltip:AddLine("Open the Astral hub.", 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	button:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+
+	MICRO_BUTTONS[#MICRO_BUTTONS + 1] = "AstralMicroButton"
+	self:HandleMicroButton(button)
+end
+
 function AB:SetupMicroBar()
 	local microBar = CreateFrame("Frame", "ElvUI_MicroBar", E.UIParent)
 	microBar:Point("TOPLEFT", E.UIParent, "TOPLEFT", 4, -4)
@@ -192,6 +235,8 @@ function AB:SetupMicroBar()
 	for i = 1, #MICRO_BUTTONS do
 		self:HandleMicroButton(_G[MICRO_BUTTONS[i]])
 	end
+
+	self:SetupAstralMicroButton()
 
 	if CharacterMicroButton and CharacterMicroButton.backdrop then
 		MicroButtonPortrait:SetInside(CharacterMicroButton.backdrop)
