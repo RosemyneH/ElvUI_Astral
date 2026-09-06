@@ -8,6 +8,23 @@ local CreateFrame = CreateFrame
 
 local targetIndicators = {'Spark', 'TopIndicator', 'LeftIndicator', 'RightIndicator'}
 
+local function HasNameplateHealth(db)
+	return db.health.enable and not db.nameOnly
+end
+
+local function GetTargetGlowAnchor(nameplate, db)
+	return HasNameplateHealth(db) and nameplate.Health or nameplate.Name
+end
+
+local function ResolveNameOnlyGlowStyle(style, db)
+	if HasNameplateHealth(db) then return style end
+	if style == 'style2' then return 'style1'
+	elseif style == 'style6' then return 'style5'
+	elseif style == 'style8' then return 'style7'
+	end
+	return style
+end
+
 function NP:Construct_QuestIcons(nameplate)
 	local QuestIcons = CreateFrame('Frame', nameplate:GetName() .. 'QuestIcons', nameplate)
 	QuestIcons:Size(20)
@@ -86,11 +103,16 @@ function NP:Construct_TargetIndicator(nameplate)
 	TargetIndicator:SetFrameLevel(nameplate:GetFrameLevel()-1)
 
 	TargetIndicator.Shadow = CreateFrame('Frame', nil, TargetIndicator)
+	TargetIndicator.Shadow:SetBackdrop({edgeFile = LSM:Fetch('border', 'ElvUI GlowBorder'), edgeSize = E:Scale(5)})
 	TargetIndicator.Shadow:Hide()
 
 	for _, object in ipairs(targetIndicators) do
 		local indicator = TargetIndicator:CreateTexture(nil, 'BACKGROUND')
 		indicator:Hide()
+
+		if object == 'Spark' then
+			indicator:SetTexture(E.Media.Textures.Spark)
+		end
 
 		TargetIndicator[object] = indicator
 	end
@@ -121,59 +143,68 @@ function NP:Update_TargetIndicator(nameplate)
 		local style, color, size, scale, spacing = tdb.glowStyle, NP.db.colors.glowColor, tdb.arrowSize, tdb.arrowScale, tdb.arrowSpacing
 		local r, g, b, a = color.r, color.g, color.b, color.a
 		local db = NP:PlateDB(nameplate)
+		local anchor = GetTargetGlowAnchor(nameplate, db)
 		scale = scale or 1
 		size = size * scale
+		style = ResolveNameOnlyGlowStyle(style, db)
+		indicator.style = style
 
-		-- background glow is 2, 6, and 8; 2 is background glow only
-		if not db.health.enable and (style ~= 'style2' and style ~= 'style6' and style ~= 'style8') then
-			style = 'style2'
-			indicator.style = style
-		end
-
-		-- top arrow is 3, 5, 6
 		if indicator.TopIndicator and (style == 'style3' or style == 'style5' or style == 'style6') then
-			indicator.TopIndicator:Point('BOTTOM', nameplate.Health, 'TOP', 0, spacing)
+			indicator.TopIndicator:ClearAllPoints()
+			indicator.TopIndicator:Point('BOTTOM', anchor, 'TOP', 0, spacing)
 			indicator.TopIndicator:SetVertexColor(r, g, b, a)
 			indicator.TopIndicator:SetSize(size, size)
 		end
 
-		-- side arrows are 4, 7, 8
 		if indicator.LeftIndicator and indicator.RightIndicator and (style == 'style4' or style == 'style7' or style == 'style8') then
-			indicator.LeftIndicator:Point('LEFT', nameplate.Health, 'RIGHT', spacing, 0)
-			indicator.RightIndicator:Point('RIGHT', nameplate.Health, 'LEFT', -spacing, 0)
+			indicator.LeftIndicator:ClearAllPoints()
+			indicator.RightIndicator:ClearAllPoints()
+			indicator.LeftIndicator:Point('LEFT', anchor, 'RIGHT', spacing, 0)
+			indicator.RightIndicator:Point('RIGHT', anchor, 'LEFT', -spacing, 0)
 			indicator.LeftIndicator:SetVertexColor(r, g, b, a)
 			indicator.RightIndicator:SetVertexColor(r, g, b, a)
 			indicator.LeftIndicator:SetSize(size, size)
 			indicator.RightIndicator:SetSize(size, size)
 		end
 
-		-- border glow is 1, 5, 7
 		if indicator.Shadow and (style == 'style1' or style == 'style5' or style == 'style7') then
-			indicator.Shadow:SetOutside(nameplate.Health, E.PixelMode and 6 or 8, E.PixelMode and 6 or 8, nil, true)
-			indicator.Shadow:SetBackdropBorderColor(r, g, b)
+			indicator.Shadow:ClearAllPoints()
+			indicator.Shadow:SetOutside(anchor, E.PixelMode and 4 or 6, E.PixelMode and 4 or 6, nil, true)
+			indicator.Shadow:SetBackdropBorderColor(r, g, b, a)
 			indicator.Shadow:SetAlpha(a)
 		end
 
-		-- background glow is 2, 6, and 8
 		if indicator.Spark and (style == 'style2' or style == 'style6' or style == 'style8') then
-			local size
-			if db.health.enable and not (db.nameOnly) then
-				parent = nameplate.Health
-				size = (E.Border + 14) * scale
-			else
-				parent = nameplate
-				size = (-(E.Border + 4)) * scale
-			end
-			indicator.Spark:Point('TOPLEFT', parent, 'TOPLEFT', -(size * 2), size)
-			indicator.Spark:Point('BOTTOMRIGHT', parent, 'BOTTOMRIGHT', (size * 2), -size)
+			local sparkSize = HasNameplateHealth(db) and ((E.Border + 14) * scale) or ((E.Border + 8) * scale)
+			indicator.Spark:ClearAllPoints()
+			indicator.Spark:Point('TOPLEFT', anchor, 'TOPLEFT', -(sparkSize * 2), sparkSize)
+			indicator.Spark:Point('BOTTOMRIGHT', anchor, 'BOTTOMRIGHT', (sparkSize * 2), -sparkSize)
 			indicator.Spark:SetVertexColor(r, g, b, a)
 		end
 	end
 end
 
 function NP:Construct_Highlight(nameplate)
-	Highlight = nameplate.nameplateAnchor.blizzHighlight
-	return Highlight
+	local frame = CreateFrame('Frame', nameplate:GetName() .. 'HoverHighlight', nameplate)
+	frame:SetFrameLevel(nameplate.Health:GetFrameLevel() + 2)
+	frame:Hide()
+
+	local glow = CreateFrame('Frame', nil, frame)
+	glow:SetAllPoints(frame)
+	glow:SetBackdrop({edgeFile = LSM:Fetch('border', 'ElvUI GlowBorder'), edgeSize = E:Scale(4)})
+
+	local spark = frame:CreateTexture(nil, 'BACKGROUND')
+	spark:SetAllPoints(frame)
+	spark:SetTexture(E.Media.Textures.Spark)
+
+	local fill = frame:CreateTexture(nil, 'BACKGROUND')
+	fill:SetAllPoints(frame)
+
+	frame.Glow = glow
+	frame.Spark = spark
+	frame.Fill = fill
+
+	return frame
 end
 
 function NP:Update_Highlight(nameplate, nameOnlySF)
@@ -183,23 +214,36 @@ function NP:Update_Highlight(nameplate, nameOnlySF)
 		if not nameplate:IsElementEnabled('Highlight') then
 			nameplate:EnableElement('Highlight')
 		end
-		
+
 		local highlight = nameplate.Highlight
-		if highlight:GetParent() ~= nameplate then
-			highlight:SetParent(nameplate)
-		end
-		
-		if highlight:GetDrawLayer() ~= "OVERLAY" then
-			Highlight:SetDrawLayer("OVERLAY")
-		end
-		
-		highlight:SetTexture(E.Media.Textures.Spark)
-		highlight:SetAllPoints(nameplate)
-		
-		if db.health.enable and not (db.nameOnly or nameOnlySF) then
-			highlight:SetAlpha(0.75)
+		local style = NP.db.highlightStyle or 'GLOW'
+		local color = NP.db.highlightColor or P.nameplates.highlightColor
+		local hasHealth = db.health.enable and not (db.nameOnly or nameOnlySF)
+		local anchor = hasHealth and nameplate.Health or nameplate.Name
+
+		highlight:ClearAllPoints()
+		if hasHealth then
+			highlight:SetPoint('TOPLEFT', nameplate.Health, 'TOPLEFT', -3, 3)
+			highlight:SetPoint('BOTTOMRIGHT', nameplate.Health, 'BOTTOMRIGHT', 3, -3)
 		else
-			highlight:SetAlpha(0.50)
+			highlight:SetPoint('TOPLEFT', anchor, 'TOPLEFT', -10, 8)
+			highlight:SetPoint('BOTTOMRIGHT', anchor, 'BOTTOMRIGHT', 10, -8)
+		end
+
+		highlight.Glow:Hide()
+		highlight.Spark:Hide()
+		highlight.Fill:Hide()
+
+		if style == 'GLOW' then
+			highlight.Glow:SetBackdropBorderColor(color.r, color.g, color.b, color.a)
+			highlight.Glow:Show()
+		elseif style == 'SPARK' then
+			highlight.Spark:SetAlpha(hasHealth and 0.75 or 0.5)
+			highlight.Spark:Show()
+		elseif style == 'FILL' then
+			highlight.Fill:SetTexture(LSM:Fetch('statusbar', NP.db.statusbar))
+			highlight.Fill:SetVertexColor(color.r, color.g, color.b, color.a * 0.35)
+			highlight.Fill:Show()
 		end
 	elseif nameplate:IsElementEnabled('Highlight') then
 		nameplate:DisableElement('Highlight')

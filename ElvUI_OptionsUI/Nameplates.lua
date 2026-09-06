@@ -410,6 +410,8 @@ NamePlates.generalGroup.args.spacer1 = ACH:Spacer(6, 'full')
 NamePlates.generalGroup.args.lowHealthThreshold = ACH:Range(L["Low Health Threshold"], L["Make the unitframe glow when it is below this percent of health."], 11, { min = 0, softMax = .5, max = .8, step = .01, isPercent = true })
 NamePlates.generalGroup.args.loadDistance = ACH:Range(L["Load Distance"], L["Only load nameplates for units within this range."], 12, { min = 5, max = 61, step = 1 }, nil, nil, nil, nil)
 NamePlates.generalGroup.args.highlight = ACH:Toggle(L["Hover Highlight"], nil, 13, nil, nil, 125)
+NamePlates.generalGroup.args.highlightStyle = ACH:Select(L["Hover Highlight Style"], nil, 14, { GLOW = L["Glow Border"], SPARK = L["Spark"], FILL = L["Fill"] }, nil, nil, nil, function() return not E.db.nameplates.highlight end)
+NamePlates.generalGroup.args.highlightColor = ACH:Color(L["Hover Highlight Color"], nil, 15, true, nil, function() return not E.db.nameplates.highlight end)
 
 NamePlates.generalGroup.args.spacer2 = ACH:Spacer(15, 'full')
 NamePlates.generalGroup.args.plateVisibility = ACH:Group(L["Visibility"], nil, 50, nil, function(info) return E.db.nameplates.visibility[info[#info]] end, function(info, value) E.db.nameplates.visibility[info[#info]] = value NP:SetCVars() NP:ConfigureAll() end)
