@@ -5,6 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.34](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.34) (2026-09-06)
+
+### Features
+
+* Bag button deposits reagents through Project Astral (`AstralBankServer` DepositAll)
+* Nameplate hover highlight styles (glow / spark / fill) and name-only target glow
+* Optional Project Astral table skin under `/ec` → Astral
+
+### Fixes
+
+* Death Knight rune bars show on the player classbar again
+* Nameplate DK runes color from WotLK rune types instead of a missing retail API
+* Collect Appearances / collect-transmog bag chrome is removed
+
 ## [7.33](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.33) (2026-09-06)
 
 ### Fixes
