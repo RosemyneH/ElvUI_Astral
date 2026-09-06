@@ -148,7 +148,7 @@ function CH:AddSmiley(key, texture)
 	end
 end
 
-local GM_CHAT_ICON = "|TInterface\\ChatFrame\\UI-ChatIcon-Blizz.blp:12:12:0:0|t "
+local GM_CHAT_ICON = "|cff40c7eb<GM>|r "
 
 local specialChatIcons
 do --this can save some main file locals
@@ -1287,7 +1287,6 @@ function CH:ChatFrame_MessageEventHandler(frame, event, arg1, arg2, arg3, arg4, 
 			if type(chatIcon) == "function" then chatIcon = chatIcon() end
 			if arg6 and arg6 ~= "" then
 				if arg6 == "GM" then
-					--If it was a whisper, dispatch it to the GMChat addon.
 					if chatType == "WHISPER" then
 						return
 					end
@@ -1298,6 +1297,9 @@ function CH:ChatFrame_MessageEventHandler(frame, event, arg1, arg2, arg3, arg4, 
 					pflag = (pflag or "").._G["CHAT_FLAG_"..arg6]
 				else
 					pflag = _G["CHAT_FLAG_"..arg6] or ""
+				end
+				if type(pflag) == "string" and find(pflag, "|T", 1, true) then
+					pflag = GM_CHAT_ICON
 				end
 			else
 				-- Special Chat Icon
@@ -2272,8 +2274,6 @@ function CH:Initialize()
 
 	self.Initialized = true
 	self.db = E.db.chat
-	_G.CHAT_FLAG_GM = GM_CHAT_ICON
-	_G.CHAT_FLAG_DEV = GM_CHAT_ICON
 
 	if not ElvCharacterDB.ChatEditHistory then ElvCharacterDB.ChatEditHistory = {} end
 	if not ElvCharacterDB.ChatHistoryLog or not self.db.chatHistory then ElvCharacterDB.ChatHistoryLog = {} end
