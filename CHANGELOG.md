@@ -4,6 +4,20 @@ All notable changes to Astral are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
+## [7.28.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.28.0) (2026-09-05)
+
+### Features
+
+* ElvUI skin for Project Astral (panels, tabs, hover, toasts, and confirm popups)
+* Astral hub button on the ElvUI micro bar
+
+### Fixes
+
+* GM chat icon no longer stretches into a long bar
+* `.mythic items` is never sent (Ascension leftover)
+* Chat no longer errors on channel notices (`string.isNilOrEmpty`)
+* Bag search recognizes Mythic item quality after login
+
 ## [7.27.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.27.0) (2026-09-05)
 
 ### Features
