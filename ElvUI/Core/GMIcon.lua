@@ -12,7 +12,7 @@ local function ReplaceGMIcon(name)
 end
 
 local function ApplySelfTest(name, unit)
-	if not testSelf or not name then return name end
+	if not testSelf or not name or not unit then return name end
 	if unit ~= "player" and not UnitIsUnit(unit, "player") then return name end
 	if find(name, E.Media.Textures.Astral, 1, true) then return name end
 	return E:GetGMChatIcon()..name
@@ -27,6 +27,7 @@ function E:InitializeGMIcon()
 
 	local UnitName = _G.UnitName
 	_G.UnitName = function(unit)
+		if not unit then return end
 		local name, realm = UnitName(unit)
 		name = ReplaceGMIcon(name)
 		name = ApplySelfTest(name, unit)
