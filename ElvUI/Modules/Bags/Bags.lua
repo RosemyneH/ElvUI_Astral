@@ -18,7 +18,6 @@ local CooldownFrame_SetTimer = CooldownFrame_SetTimer
 local CreateFrame = CreateFrame
 local DeleteCursorItem = DeleteCursorItem
 local GameTooltip_Hide = GameTooltip_Hide
-local GetBackpackCurrencyInfo = GetBackpackCurrencyInfo
 local GetContainerItemCooldown = GetContainerItemCooldown
 local GetContainerItemID = GetContainerItemID
 local GetContainerItemInfo = GetContainerItemInfo
@@ -1292,6 +1291,54 @@ function B:VendorGrayCheck()
 	end
 end
 
+local function ParkBagHeaderButton(button)
+	if not button then return end
+	pcall(function()
+		button:Hide()
+		button:SetParent(E.HiddenFrame)
+		if button.EnableMouse then button:EnableMouse(false) end
+		button.Show = E.noop
+	end)
+end
+
+function B:UpdateBagSearchAnchors(f)
+	if not f or f.isBank or not f.editBox or not f.holderFrame then return end
+
+	local rightAnchor = f.reagentButton or f.vendorGraysButton or f.bagsButton or f.sortButton
+	if not rightAnchor then return end
+
+	f.editBox:ClearAllPoints()
+	f.editBox:Point("BOTTOMLEFT", f.holderFrame, "TOPLEFT", (E.Border * 2) + 18, E.Border * 2 + 2)
+	f.editBox:Point("RIGHT", rightAnchor, "LEFT", -5, 0)
+	f.editBox:Height(15)
+end
+
+function B:CleanupBagHeaderButtons(f)
+	if not f or f.isBank then return end
+
+	ParkBagHeaderButton(f.transmogButton)
+	ParkBagHeaderButton(_G.ElvUI_ContainerFrameTransmogButton)
+	f.transmogButton = nil
+
+	if f.deconstructButton then
+		ParkBagHeaderButton(f.deconstructButton)
+		f.deconstructButton = nil
+		local D = B:GetModule("Deconstruct", true)
+		if D then D.DeconstructButton = nil end
+	end
+
+	B:UpdateBagSearchAnchors(f)
+end
+
+function B:DepositToReagentBank()
+	PlaySound("igMainMenuOption")
+	if _G.AIO and _G.AIO.Handle then
+		_G.AIO.Handle("AstralBankServer", "DepositAll")
+		return
+	end
+	E:Print("Astral reagent bank is not available.")
+end
+
 local function BagUpdate(self, bagIDs)
 	for bagID in pairs(bagIDs) do
 		B.OnEvent(self, "BAG_UPDATE", bagID)
@@ -1457,6 +1504,7 @@ function B:ContructContainerFrame(name, isBank)
 		f:SetScript("OnShow", function(frame)
 			B:FlushDeferredBagUpdate(frame)
 			B.RefreshSearch(frame)
+			B:CleanupBagHeaderButtons(frame)
 		end)
 		f:SetScript("OnHide", function()
 			CloseBankFrame()
@@ -1590,48 +1638,25 @@ function B:ContructContainerFrame(name, isBank)
 		f.vendorGraysButton:SetScript("OnLeave", GameTooltip_Hide)
 		f.vendorGraysButton:SetScript("OnClick", B.VendorGrayCheck)
 
-		--Collect Transmog
-		f.transmogButton = CreateFrame("Button", name.."TransmogButton", f)
-		f.transmogButton:Size(16 + E.Border)
-		f.transmogButton:SetTemplate()
-		f.transmogButton:Point("RIGHT", f.vendorGraysButton, "LEFT", -5, 0)
-		f.transmogButton:SetNormalTexture("Interface\\Icons\\inv_misc_tabardpvp_01")
-		f.transmogButton:GetNormalTexture():SetTexCoord(unpack(E.TexCoords))
-		f.transmogButton:GetNormalTexture():SetInside()
-		f.transmogButton:SetPushedTexture("Interface\\Icons\\inv_misc_tabardpvp_01")
-		f.transmogButton:GetPushedTexture():SetTexCoord(unpack(E.TexCoords))
-		f.transmogButton:GetPushedTexture():SetInside()
-		f.transmogButton:StyleButton(nil, true)
-		f.transmogButton.ttText = "Collect Transmog"
-		f.transmogButton:SetScript("OnEnter", B.Tooltip_Show)
-		f.transmogButton:SetScript("OnLeave", GameTooltip_Hide)
-		f.transmogButton:SetScript("OnClick", function()
-			PlaySound("igMainMenuOption")
-			if C_AppearanceCollection and C_AppearanceCollection.CollectItemAppearance then
-				local c = C_AppearanceCollection
-				local collectedCount = 0
-				for bag = 0, 4 do
-					for slot = 1, GetContainerNumSlots(bag) do
-						local itemID = GetContainerItemID(bag, slot)
-						if itemID then
-							local appearanceID = C_Appearance.GetItemAppearanceID(itemID)
-							if appearanceID and not c.IsAppearanceCollected(appearanceID) then
-								local guid = GetContainerItemGUID(bag, slot)
-								c.CollectItemAppearance(guid)
-								collectedCount = collectedCount + 1
-							end
-						end
-					end
-				end
-				if collectedCount > 0 then
-					E:Print(format("Collected %d new appearance(s).", collectedCount))
-				else
-					E:Print("No new appearances to collect.")
-				end
-			else
-				E:Print("Vanity API not found.")
-			end
+		-- ʕ •ᴥ•ʔ✿ Deposit trade goods / reagents into the reagent bank ✿ ʕ •ᴥ•ʔ
+		f.reagentButton = CreateFrame("Button", name.."ReagentButton", f)
+		f.reagentButton:Size(16 + E.Border)
+		f.reagentButton:SetTemplate()
+		f.reagentButton:Point("RIGHT", f.vendorGraysButton, "LEFT", -5, 0)
+		f.reagentButton:SetNormalTexture("Interface\\Icons\\INV_Misc_Bag_10_Green")
+		f.reagentButton:GetNormalTexture():SetTexCoord(unpack(E.TexCoords))
+		f.reagentButton:GetNormalTexture():SetInside()
+		f.reagentButton:SetPushedTexture("Interface\\Icons\\INV_Misc_Bag_10_Green")
+		f.reagentButton:GetPushedTexture():SetTexCoord(unpack(E.TexCoords))
+		f.reagentButton:GetPushedTexture():SetInside()
+		f.reagentButton:StyleButton(nil, true)
+		f.reagentButton.ttText = "Deposit Reagents"
+		f.reagentButton:SetScript("OnEnter", B.Tooltip_Show)
+		f.reagentButton:SetScript("OnLeave", GameTooltip_Hide)
+		f.reagentButton:SetScript("OnClick", function()
+			B:DepositToReagentBank()
 		end)
+		f.reagentButton.__elvReagentButton = true
 
 		--Search
 		f.editBox = CreateFrame("EditBox", name.."EditBox", f)
@@ -1639,8 +1664,7 @@ function B:ContructContainerFrame(name, isBank)
 		f.editBox:CreateBackdrop()
 		f.editBox.backdrop:Point("TOPLEFT", f.editBox, "TOPLEFT", -20, 2)
 		f.editBox:Height(15)
-		f.editBox:Point("BOTTOMLEFT", f.holderFrame, "TOPLEFT", (E.Border * 2) + 18, E.Border * 2 + 2)
-		f.editBox:Point("RIGHT", f.transmogButton, "LEFT", -5, 0)
+		B:UpdateBagSearchAnchors(f)
 		f.editBox:SetAutoFocus(false)
 		f.editBox:SetScript("OnEscapePressed", B.ResetAndClear)
 		f.editBox:SetScript("OnEnterPressed", function(eb) eb:ClearFocus() end)
@@ -1654,6 +1678,8 @@ function B:ContructContainerFrame(name, isBank)
 		f.editBox.searchIcon:SetTexture("Interface\\Common\\UI-Searchbox-Icon")
 		f.editBox.searchIcon:Point("LEFT", f.editBox.backdrop, "LEFT", E.Border + 1, -1)
 		f.editBox.searchIcon:Size(15)
+
+		B:CleanupBagHeaderButtons(f)
 
 		--Currency
 		f.currencyButton = CreateFrame("Frame", nil, f)
@@ -1683,6 +1709,7 @@ function B:ContructContainerFrame(name, isBank)
 		f:SetScript("OnShow", function(frame)
 			B:FlushDeferredBagUpdate(frame)
 			B.RefreshSearch(frame)
+			B:CleanupBagHeaderButtons(frame)
 		end)
 		f:SetScript("OnHide", function()
 			CloseBackpack()
@@ -2109,6 +2136,8 @@ function B:Initialize()
 	B:Layout()
 
 	B:DisableBlizzard()
+	B:CleanupBagHeaderButtons(B.BagFrame)
+
 	B:RegisterEvent("PLAYER_ENTERING_WORLD", "UpdateGoldText")
 	B:RegisterEvent("PLAYER_MONEY", "UpdateGoldText")
 	B:RegisterEvent("PLAYER_TRADE_MONEY", "UpdateGoldText")

@@ -589,74 +589,24 @@ function D:UpdateBagSlots(frame, isActive)
 	end
 end
 
--- Helper function to create and setup the deconstruct button
-local function CreateDeconstructButton(bagFrame)
-	if not bagFrame or not bagFrame.holderFrame then return end
-	if bagFrame.deconstructButton then return end -- Already created
+-- Helper function to setup hooks (called once when bags are first opened)
+local function SetupDeconstructHooks()
+	if D.DeconstructHooks then return end
+	D.DeconstructHooks = true
 
-	-- Create the button
-	local button = CreateFrame("Button", nil, bagFrame.holderFrame)
-	button:Size(16 + E.Border)
-	button:SetTemplate()
-	local anchor = bagFrame.transmogButton or bagFrame.vendorGraysButton
-	button:Point("RIGHT", anchor, "LEFT", -5, 0)
-	button:SetNormalTexture("Interface\\ICONS\\INV_Rod_Enchantedcobalt")
-	button:GetNormalTexture():SetTexCoord(unpack(E.TexCoords))
-	button:GetNormalTexture():SetInside()
-	button:SetPushedTexture("Interface\\ICONS\\INV_Rod_Enchantedcobalt")
-	button:GetPushedTexture():SetTexCoord(unpack(E.TexCoords))
-	button:GetPushedTexture():SetInside()
-	button:StyleButton(nil, true)
-	button.ttText = L["Deconstruct Mode"]
-	button.ttText2 = format(L["Deconstruct Mode Desc"] .. "\n" .. L["Current state: %s."], D:GetDeconMode())
-	button:SetScript("OnEnter", B.Tooltip_Show)
-	button:SetScript("OnLeave", GameTooltip_Hide)
-	button:SetScript("OnClick", function() D:ToggleMode() end)
-
-	bagFrame.deconstructButton = button
-	D.DeconstructButton = button
-
-	-- Re-anchor the search box to the deconstruct button
-	if bagFrame.editBox then
-		bagFrame.editBox:ClearAllPoints()
-		bagFrame.editBox:Point("BOTTOMLEFT", bagFrame.holderFrame, "TOPLEFT", (E.Border * 2) + 18, E.Border * 2 + 2)
-		bagFrame.editBox:Point("RIGHT", bagFrame.deconstructButton, "LEFT", -5, 0)
-	end
-end
-
--- Helper function to setup button and hooks (called once when bags are first opened)
-local function SetupDeconstructButton()
-	if D.DeconstructButton then return end
-
-	-- Update professions first
-	D:UpdateProfessions()
-
-	if not B.BagFrame then return end
-
-	-- Create the button (always show if module is enabled)
-	CreateDeconstructButton(B.BagFrame)
-	
-	-- Update button state (enabled/disabled)
-	D:UpdateButtonState()
-
-	-- Only create the real deconstruct button and hooks once
-	if not D.DeconstructionReal then
-		-- D:ConstructRealDecButton() is now called in Initialize to prevent taint
-		-- GameTooltip hooks are also moved to Initialize
+	if B.BagFrame then
+		B:CleanupBagHeaderButtons(B.BagFrame)
 	end
 
 	-- Hide deconstruct mode when bags close
-	B.BagFrame:HookScript('OnHide', function()
-		D.DeconstructMode = false
-		if D.DeconstructButton then
-			local normalTex = D.DeconstructButton:GetNormalTexture()
-			if normalTex then normalTex:SetTexture([[Interface\ICONS\INV_Rod_Enchantedcobalt]]) end
-			ActionButton_HideOverlayGlow(D.DeconstructButton)
-		end
-		if B.BagFrame then D:UpdateBagSlots(B.BagFrame, false) end
-		if B.BankFrame then D:UpdateBagSlots(B.BankFrame, false) end
-		if D.DeconstructionReal then D.DeconstructionReal:OnLeave() end
-	end)
+	if B.BagFrame then
+		B.BagFrame:HookScript('OnHide', function()
+			D.DeconstructMode = false
+			if B.BagFrame then D:UpdateBagSlots(B.BagFrame, false) end
+			if B.BankFrame then D:UpdateBagSlots(B.BankFrame, false) end
+			if D.DeconstructionReal then D.DeconstructionReal:OnLeave() end
+		end)
+	end
 end
 
 -- Initialize the module
@@ -672,9 +622,14 @@ function D:Initialize()
 		GameTooltip:HookScript('OnUpdate', function() D:DeconstructParser() end)
 	end
 
-	-- Hook into Layout to setup button for bags and reapply dimming
+	-- Hook into Layout to reapply dimming and keep the bag header clean
 	hooksecurefunc(B, "Layout", function(_, isBank)
-		if not isBank then if B.BagFrame and not D.DeconstructButton then E:Delay(0.1, function() SetupDeconstructButton() end) end end
+		if not isBank then
+			E:Delay(0.1, function()
+				SetupDeconstructHooks()
+				if B.BagFrame then B:CleanupBagHeaderButtons(B.BagFrame) end
+			end)
+		end
 
 		-- Reapply dimming after layout (layout resets slot alpha)
 		if D.DeconstructMode then
@@ -693,8 +648,18 @@ function D:Initialize()
 	D:RegisterEvent('BAG_UPDATE')
 	D:RegisterEvent('SKILL_LINES_CHANGED')
 
-	-- If bag frame already exists, setup button now
-	if B.BagFrame and not D.DeconstructButton then E:Delay(0.1, function() SetupDeconstructButton() end) end
+	-- If bag frame already exists, setup hooks now
+	if B.BagFrame then E:Delay(0.1, SetupDeconstructHooks) end
+
+	SLASH_ELVIDECONSTRUCT1 = "/decon"
+	SlashCmdList.ELVIDECONSTRUCT = function()
+		if not D:HasRelevantProfession() then
+			E:Print(L["Deconstruct Mode"] .. ": no relevant profession.")
+			return
+		end
+		D:ToggleMode()
+		E:Print(format(L["Deconstruct Mode"] .. ": %s", D:GetDeconMode()))
+	end
 end
 
 -- Handle SKILL_LINES_CHANGED event
