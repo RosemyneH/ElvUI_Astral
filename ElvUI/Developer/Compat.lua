@@ -240,26 +240,64 @@ if not GroupUtil then
 	end
 end
 
-if not C_NamePlate then
-	C_NamePlate = {}
+-- ʕ •ᴥ•ʔ✿ AwesomeWotLK injects real C_NamePlate; never replace it ✿ ʕ •ᴥ•ʔ
+_G.ELVUI_AWESOMEWOTLK = not not (
+	(type(CopyToClipboard) == "function")
+	or (type(FlashWindow) == "function")
+	or (C_NamePlate and type(C_NamePlate.GetNamePlates) == "function")
+	or (C_NamePlate and type(C_NamePlate.GetNamePlateByGUID) == "function")
+	or (C_VoiceChat and type(C_VoiceChat.SpeakText) == "function")
+)
+
+if not C_VanityCollection then
+	C_VanityCollection = {}
+	function C_VanityCollection.IsConsolidatedVanityBuff()
+		return false
+	end
+	function C_VanityCollection.IsCollectionItemOwned()
+		return false
+	end
+end
+
+C_NamePlate = C_NamePlate or {}
+if not C_NamePlate.GetNamePlateForUnit then
 	function C_NamePlate.GetNamePlateForUnit()
 		return nil
 	end
 end
+if not C_NamePlate.GetNamePlates then
+	function C_NamePlate.GetNamePlates()
+		return {}
+	end
+end
 
-if not C_NamePlateManager then
-	C_NamePlateManager = {}
+C_NamePlateManager = C_NamePlateManager or {}
+if not C_NamePlateManager.GetNamePlateSize then
 	function C_NamePlateManager.GetNamePlateSize()
 		return nil
 	end
+end
+if not C_NamePlateManager.SetNamePlateSize then
 	function C_NamePlateManager.SetNamePlateSize() end
+end
+if not C_NamePlateManager.SetNamePlateFriendlySize then
 	function C_NamePlateManager.SetNamePlateFriendlySize() end
+end
+if not C_NamePlateManager.SetNamePlateEnemySize then
 	function C_NamePlateManager.SetNamePlateEnemySize() end
+end
+if not C_NamePlateManager.SetEnableResizeNamePlates then
 	function C_NamePlateManager.SetEnableResizeNamePlates() end
+end
+if not C_NamePlateManager.CheckNamePlateMotion then
 	function C_NamePlateManager.CheckNamePlateMotion() end
+end
+if not C_NamePlateManager.IsNamePlateMoving then
 	function C_NamePlateManager.IsNamePlateMoving()
 		return false
 	end
+end
+if not C_NamePlateManager.ApplyFPSIncrease then
 	function C_NamePlateManager.ApplyFPSIncrease() end
 end
 

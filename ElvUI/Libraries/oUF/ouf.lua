@@ -792,6 +792,7 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 	eventHandler:RegisterEvent('PLAYER_TARGET_CHANGED')
 	eventHandler:RegisterEvent('UNIT_FACTION')
 	pcall(eventHandler.RegisterEvent, eventHandler, 'UNIT_FLAGS')
+	pcall(eventHandler.RegisterEvent, eventHandler, 'PLAYER_ENTERING_WORLD')
 
 	if(IsLoggedIn()) then
 		if(nameplateCVars) then
@@ -805,6 +806,16 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 
 	C_NamePlateManager.SetEnableResizeNamePlates(true)
 
+	local function SyncExistingNamePlates()
+		if type(C_NamePlate.GetNamePlateForUnit) ~= "function" then return end
+		for i = 1, 40 do
+			local token = "nameplate"..i
+			if C_NamePlate.GetNamePlateForUnit(token) then
+				eventHandler:GetScript("OnEvent")(eventHandler, "NAME_PLATE_UNIT_ADDED", token)
+			end
+		end
+	end
+
 	eventHandler:SetScript('OnEvent', function(_, event, unit)
 		if(event == 'PLAYER_LOGIN') then
 			if(nameplateCVars) then
@@ -812,6 +823,9 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 					SetCVar(cvar, value)
 				end
 			end
+			SyncExistingNamePlates()
+		elseif(event == 'PLAYER_ENTERING_WORLD') then
+			SyncExistingNamePlates()
 		elseif(event == 'PLAYER_TARGET_CHANGED') then
 			local nameplate = C_NamePlate.GetNamePlateForUnit('target')
 			if(nameplateCallback) then
@@ -874,6 +888,10 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 			end
 		end
 	end)
+
+	if(IsLoggedIn()) then
+		SyncExistingNamePlates()
+	end
 end
 
 --[[ oUF:AddElement(name, update, enable, disable)

@@ -82,6 +82,7 @@ do
 end
 
 AddOn.oUF = Engine.oUF
+AddOn.AwesomeWotLK = not not _G.ELVUI_AWESOMEWOTLK
 AddOn.ActionBars = AddOn:NewModule("ActionBars","AceHook-3.0","AceEvent-3.0")
 AddOn.AFK = AddOn:NewModule("AFK","AceEvent-3.0","AceTimer-3.0")
 AddOn.Auras = AddOn:NewModule("Auras","AceHook-3.0","AceEvent-3.0")
