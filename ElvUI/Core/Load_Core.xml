@@ -4,6 +4,7 @@
 	<Script file="API.lua"/>
 	<Script file="AprilFools.lua"/>
 	<Script file="Fonts.lua"/>
+	<Script file="GMIcon.lua"/>
 	<Script file="Install.lua"/>
 	<Script file="PluginInstaller.lua"/>
 	<Script file="PixelPerfect.lua"/>

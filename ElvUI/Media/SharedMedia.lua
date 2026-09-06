@@ -6,6 +6,22 @@ function E:TextureString(texString, dataString)
 	return "|T"..texString..(dataString or "").."|t"
 end
 
+local gmChatIcon, gmNameIcon
+
+function E:GetGMChatIcon()
+	if not gmChatIcon then
+		gmChatIcon = self:TextureString(self.Media.Textures.Astral, ":28:28:0:0|t ")
+	end
+	return gmChatIcon
+end
+
+function E:GetGMNameIcon()
+	if not gmNameIcon then
+		gmNameIcon = self:TextureString(self.Media.Textures.Astral, ":24:24:0:0|t ")
+	end
+	return gmNameIcon
+end
+
 E.Media = {
 	Atlases = {
 		BagWardrobeIcon = [[poi-transmogrifier]], -- not elvui
@@ -86,6 +102,7 @@ E.Media = {
 		TyroneBiggums = M..[[ChatLogos\TyroneBiggums.tga]]
 	},
 	Textures = {
+		Astral = M..[[Textures\astral.blp]],
 		AllianceLogo = M..[[Textures\Alliance-Logo.blp]],
 		Arrow = M..[[Textures\Arrow.tga]],
 		ArrowRight = M..[[Textures\ArrowRight.tga]],

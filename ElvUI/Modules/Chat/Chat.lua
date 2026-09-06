@@ -148,8 +148,6 @@ function CH:AddSmiley(key, texture)
 	end
 end
 
-local GM_CHAT_ICON = "|cff40c7eb<GM>|r "
-
 local specialChatIcons
 do --this can save some main file locals
 	local y = ":13:25"
@@ -1290,16 +1288,16 @@ function CH:ChatFrame_MessageEventHandler(frame, event, arg1, arg2, arg3, arg4, 
 					if chatType == "WHISPER" then
 						return
 					end
-					pflag = GM_CHAT_ICON
+					pflag = E:GetGMChatIcon()
 				elseif arg6 == "DEV" then
-					pflag = GM_CHAT_ICON
+					pflag = E:GetGMChatIcon()
 				elseif arg6 == "DND" or arg6 == "AFK" then
 					pflag = (pflag or "").._G["CHAT_FLAG_"..arg6]
 				else
 					pflag = _G["CHAT_FLAG_"..arg6] or ""
 				end
 				if type(pflag) == "string" and find(pflag, "|T", 1, true) then
-					pflag = GM_CHAT_ICON
+					pflag = E:GetGMChatIcon()
 				end
 			else
 				-- Special Chat Icon

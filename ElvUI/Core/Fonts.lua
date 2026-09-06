@@ -44,7 +44,7 @@ function E:UpdateBlizzardFonts()
 
 	DAMAGE_TEXT_FONT	= COMBAT
 	STANDARD_TEXT_FONT	= NORMAL
-	-- ʕ •ᴥ•ʔ✿ keep engine name font so |T GM icons on 3D nametags still draw ✿ ʕ •ᴥ•ʔ
+	-- ʕ •ᴥ•ʔ✿ keep engine name font so |T icons on 3D nametags still draw ✿ ʕ •ᴥ•ʔ
 
 	if self.private.general.replaceBlizzFonts then
 		SetFont(GameTooltipHeader,					NORMAL, self.db.general.fontSize)
