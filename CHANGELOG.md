@@ -4,6 +4,14 @@ All notable changes to Astral are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
+
+## [7.31.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.31.0) (2026-09-05)
+
+### Features
+
+* Astral texture replaces the Blizzard GM icon in chat and on 3D name tags
+* Project Astral transmogrify UI skin with compact layout, slot-aware appearance previews, and hover rotation
+
 ## [7.30.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.30.0) (2026-09-05)
 
 ### Features
