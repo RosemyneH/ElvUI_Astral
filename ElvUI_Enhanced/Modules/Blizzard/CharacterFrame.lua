@@ -2426,7 +2426,9 @@ function module:Initialize()
 	SetCVar("equipmentManager", 1)
 
 	if self.skinEnabled then
-		AscensionCharacterFrame:Hide()
+		if _G.AscensionCharacterFrame then
+			AscensionCharacterFrame:Hide()
+		end
 		CharacterFrameCloseButton:Point("CENTER", CharacterFrame.backdrop, "TOPRIGHT", -12, -13)
 
 		CharacterFrame.backdrop:ClearAllPoints()
