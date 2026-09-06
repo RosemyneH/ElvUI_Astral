@@ -19,7 +19,6 @@ function E:UpdateBlizzardFonts()
 	local NORMAL		= self.media.normFont
 	local NUMBER		= self.media.normFont
 	local COMBAT		= LSM:Fetch("font", self.private.general.dmgfont)
-	local NAMEFONT		= LSM:Fetch("font", self.private.general.namefont)
 	local MONOCHROME	= ""
 
 	UIDROPDOWNMENU_DEFAULT_TEXT_HEIGHT = 12
@@ -43,10 +42,9 @@ function E:UpdateBlizzardFonts()
 		COMBAT = E.Media.Fonts.Invisible
 	end
 
-	UNIT_NAME_FONT		= NAMEFONT
-	NAMEPLATE_FONT		= NAMEFONT
 	DAMAGE_TEXT_FONT	= COMBAT
 	STANDARD_TEXT_FONT	= NORMAL
+	-- ʕ •ᴥ•ʔ✿ keep engine name font so |T GM icons on 3D nametags still draw ✿ ʕ •ᴥ•ʔ
 
 	if self.private.general.replaceBlizzFonts then
 		SetFont(GameTooltipHeader,					NORMAL, self.db.general.fontSize)

@@ -256,7 +256,7 @@ E.Options.args.general = {
 							order = 6,
 							type = "select", dialogControl = "LSM30_Font",
 							name = L["Name Font"],
-							desc = L["The font that appears on the text above players heads. |cffFF0000WARNING: This requires a game restart or re-log for this change to take effect.|r"],
+							desc = L["The font that appears on the text above players heads. |cffFF0000WARNING: This requires a game restart or re-log for this change to take effect.|r"].."\n"..L["World nametags keep the default font so GM icons can display."],
 							values = AceGUIWidgetLSMlists.font,
 							get = function(info) return E.private.general[info[#info]] end,
 							set = function(info, value) E.private.general[info[#info]] = value E:UpdateMedia() E:UpdateFontTemplates() E:StaticPopup_Show("PRIVATE_RL") end
