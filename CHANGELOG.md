@@ -4,6 +4,16 @@ All notable changes to Astral are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
+## [7.30.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.30.0) (2026-09-05)
+
+### Features
+
+* GM chat icon is colored text instead of a stretched texture
+
+### Fixes
+
+* GM nameplate icons keep the Blizzard nameplate font
+
 ## [7.29.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.29.0) (2026-09-05)
 
 ### Features
