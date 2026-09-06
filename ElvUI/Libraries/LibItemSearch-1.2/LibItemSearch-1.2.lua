@@ -196,10 +196,33 @@ Lib.Filters.quality = {
 	5 Legendary ff8000
 	6 Artifact e6cc80
 	7 Heirloom 00ccff
+	8 Mythic (Ascension)
 ]]
-for i = 0, 7 do -- Ascension change: was `#ITEM_QUALITY_COLORS` now `7`
-	Lib.Filters.quality.keywords[i] = _G["ITEM_QUALITY" .. i .. "_DESC"]:lower()
+local function RebuildQualityKeywords()
+	local keywords = Lib.Filters.quality.keywords
+	for i = 0, 12 do
+		keywords[i] = nil
+		local desc = _G["ITEM_QUALITY"..i.."_DESC"]
+		if type(desc) == "string" and desc ~= "" then
+			keywords[i] = desc:lower()
+		end
+	end
+	local hasMythic
+	for _, name in pairs(keywords) do
+		if name:find("mythic", 1, true) then
+			hasMythic = true
+			break
+		end
+	end
+	if not hasMythic then
+		keywords[8] = "mythic"
+	end
 end
+
+RebuildQualityKeywords()
+local qualityEvent = CreateFrame("Frame")
+qualityEvent:RegisterEvent("PLAYER_LOGIN")
+qualityEvent:SetScript("OnEvent", RebuildQualityKeywords)
 
 --[[ Classic Keywords ]]--
 

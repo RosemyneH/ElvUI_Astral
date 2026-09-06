@@ -148,6 +148,8 @@ function CH:AddSmiley(key, texture)
 	end
 end
 
+local GM_CHAT_ICON = "|TInterface\\ChatFrame\\UI-ChatIcon-Blizz.blp:12:12:0:0|t "
+
 local specialChatIcons
 do --this can save some main file locals
 	local y = ":13:25"
@@ -1260,7 +1262,7 @@ function CH:ChatFrame_MessageEventHandler(frame, event, arg1, arg2, arg3, arg4, 
 				frame:AddMessage(format(globalstring or "%s %s %s", arg8 or 0, arg4 or "", arg2 or ""), info.r, info.g, info.b, info.id, false, nil, nil, isHistory, historyTime)
 			end
 		elseif chatType == "CHANNEL_NOTICE" then
-			if arg1 == "NOT_IN_LFG" or string.isNilOrEmpty(arg1) then return end
+			if arg1 == "NOT_IN_LFG" or not arg1 or arg1 == "" then return end
 			local globalstring = _G["CHAT_"..arg1.."_NOTICE_BN"]
 			if not globalstring then
 				globalstring = _G["CHAT_"..arg1.."_NOTICE"]
@@ -1289,11 +1291,9 @@ function CH:ChatFrame_MessageEventHandler(frame, event, arg1, arg2, arg3, arg4, 
 					if chatType == "WHISPER" then
 						return
 					end
-					--Add Blizzard Icon, this was sent by a GM
-					pflag = "|TInterface\\ChatFrame\\UI-ChatIcon-Blizz.blp:0:4:4:-3|t "
+					pflag = GM_CHAT_ICON
 				elseif arg6 == "DEV" then
-					--Add Blizzard Icon, this was sent by a Dev
-					pflag = "|TInterface\\ChatFrame\\UI-ChatIcon-Blizz.blp:0:4:4:-3|t "
+					pflag = GM_CHAT_ICON
 				elseif arg6 == "DND" or arg6 == "AFK" then
 					pflag = (pflag or "").._G["CHAT_FLAG_"..arg6]
 				else
@@ -1736,13 +1736,36 @@ function CH:AddLines(lines, ...)
 	end
 end
 
+local BLOCKED_ASCENSION_COMMANDS = {
+	[".mythic items"] = true,
+	[".mythic status"] = true,
+	[".lockout list"] = true,
+}
+
+local function IsBlockedAscensionCommand(text)
+	return BLOCKED_ASCENSION_COMMANDS[strlower(strtrim(text or ""))] == true
+end
+
 function CH:ChatEdit_OnEnterPressed(editBox)
+	if IsBlockedAscensionCommand(editBox:GetText()) then
+		editBox:SetText("")
+		return
+	end
+
 	local chatType = editBox:GetAttribute("chatType")
 	local chatFrame = chatType and editBox:GetParent()
 	if chatFrame and (not chatFrame.isTemporary) and (ChatTypeInfo[chatType].sticky == 1) then
 		if not self.db.sticky then chatType = "SAY" end
 		editBox:SetAttribute("chatType", chatType)
 	end
+end
+
+function CH:ChatEdit_SendText(editBox, addHistory)
+	if IsBlockedAscensionCommand(editBox:GetText()) then
+		editBox:SetText("")
+		return
+	end
+	return self.hooks.ChatEdit_SendText(editBox, addHistory)
 end
 
 function CH:SetChatFont(dropDown, chatFrame, fontSize)
@@ -1785,7 +1808,7 @@ CH.SecureSlashCMD = {
 function CH:ChatEdit_AddHistory(_, text)
 	text = strtrim(text)
 
-	if text ~= "" then
+	if text ~= "" and not IsBlockedAscensionCommand(text) then
 		for _, command in ipairs(CH.SecureSlashCMD) do
 			if find(text, command) then
 				return
@@ -2249,6 +2272,8 @@ function CH:Initialize()
 
 	self.Initialized = true
 	self.db = E.db.chat
+	_G.CHAT_FLAG_GM = GM_CHAT_ICON
+	_G.CHAT_FLAG_DEV = GM_CHAT_ICON
 
 	if not ElvCharacterDB.ChatEditHistory then ElvCharacterDB.ChatEditHistory = {} end
 	if not ElvCharacterDB.ChatHistoryLog or not self.db.chatHistory then ElvCharacterDB.ChatHistoryLog = {} end
@@ -2263,7 +2288,26 @@ function CH:Initialize()
 	self:UpdateAnchors()
 	self:Panels_ColorUpdate()
 
+	self:RawHook("ChatEdit_SendText", true)
 	self:SecureHook("ChatEdit_OnEnterPressed")
+
+	if not CH.SendChatMessageHooked then
+		CH.SendChatMessageHooked = true
+		local origSendChatMessage = _G.SendChatMessage
+		_G.SendChatMessage = function(msg, ...)
+			if IsBlockedAscensionCommand(msg) then return end
+			return origSendChatMessage(msg, ...)
+		end
+	end
+
+	if ElvCharacterDB.ChatEditHistory then
+		for i = #ElvCharacterDB.ChatEditHistory, 1, -1 do
+			if IsBlockedAscensionCommand(ElvCharacterDB.ChatEditHistory[i]) then
+				tremove(ElvCharacterDB.ChatEditHistory, i)
+			end
+		end
+	end
+
 	self:SecureHook("FCF_SetWindowAlpha")
 	self:SecureHook("FCFTab_UpdateColors")
 	self:SecureHook("FCF_SetChatWindowFontSize", "SetChatFont")
