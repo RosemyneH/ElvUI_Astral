@@ -295,7 +295,7 @@ end
 
 function NP:UpdateTargetPlate(nameplate)
 	NP:Update_ClassPower(nameplate)
-	--NP:Update_ClassPowerTwo(nameplate)
+	NP:Update_ClassPowerTwo(nameplate)
 
 	nameplate:UpdateAllElements('OnShow')
 end
@@ -356,7 +356,7 @@ function NP:StylePlate(nameplate)
 	NP:Construct_Auras(nameplate)
 	NP:StyleFilterEvents(nameplate) -- prepare the watcher
 
-	--NP:Construct_ClassPowerTwo(nameplate)
+	NP:Construct_ClassPowerTwo(nameplate)
 
 	NP.Plates[nameplate] = nameplate:GetName()
 
@@ -393,7 +393,7 @@ function NP:UpdatePlate(nameplate, updateBase)
 		NP:Update_ThreatIndicator(nameplate)
 		NP:Update_Cutaway(nameplate)
 
-		--NP:Update_ClassPowerTwo(nameplate)
+		NP:Update_ClassPowerTwo(nameplate)
 
 		if nameplate == _G.ElvNP_Player then
 			NP:Update_Fader(nameplate)

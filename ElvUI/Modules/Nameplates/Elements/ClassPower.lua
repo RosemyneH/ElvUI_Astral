@@ -8,6 +8,7 @@ local max, next, ipairs = max, next, ipairs
 
 local CreateFrame = CreateFrame
 local UnitHasVehicleUI = UnitHasVehicleUI
+local GetRuneType = GetRuneType
 local MAX_COMBO_POINTS = MAX_COMBO_POINTS
 
 local MAX_POINTS = { -- match to UF.classMaxResourceBar
@@ -35,13 +36,15 @@ function NP:ClassPower_UpdateColor(powerType, rune)
 	if isRunes and NP.db.colors.chargingRunes then
 		NP:Runes_UpdateCharged(self, rune)
 	elseif isRunes and rune and not classPower then
-		local color = colors.DEATHKNIGHT[rune.runeType or 0]
+		local color = colors.DEATHKNIGHT[rune.runeType or 1] or colors.DEATHKNIGHT[1]
 		NP:ClassPower_SetBarColor(rune, color.r, color.g, color.b)
 	else
 		local classColor = not classPower and ((isRunes and colors.DEATHKNIGHT) or (powerType == 'COMBO_POINTS' and colors.comboPoints))
 		for i, bar in ipairs(self) do
-			local color = classPower or (isRunes and classColor[bar.runeType or 0]) or (classColor and classColor[i]) or colors[E.myclass] or fallback
-			NP:ClassPower_SetBarColor(bar, color.r, color.g, color.b)
+			local color = classPower or (isRunes and classColor[bar.runeType or 1]) or (classColor and classColor[i]) or colors[E.myclass] or fallback
+			if color then
+				NP:ClassPower_SetBarColor(bar, color.r, color.g, color.b)
+			end
 		end
 	end
 end
@@ -169,15 +172,29 @@ function NP:Update_ClassPower(nameplate)
 	end
 end
 
+function NP:Runes_GetColor(bar, colors, classColor)
+	if classColor then
+		return classColor.r, classColor.g, classColor.b
+	end
+
+	local runeType = bar.runeType
+	if not runeType then
+		runeType = GetRuneType(bar:GetID() or 1)
+	end
+
+	local color = colors[runeType or 1] or colors[1]
+	return color.r, color.g, color.b
+end
+
 function NP:Runes_UpdateCharged(runes, rune)
 	local colors = NP.db.colors.classResources.DEATHKNIGHT
 	local classColor = (runes and runes.classColor) or (rune and rune.__owner and rune.__owner.classColor)
 
 	if rune then
-		NP:ClassPower_SetBarColor(rune, UF:Runes_GetColor(rune, colors, classColor))
+		NP:ClassPower_SetBarColor(rune, NP:Runes_GetColor(rune, colors, classColor))
 	elseif runes then
 		for _, bar in ipairs(runes) do
-			NP:ClassPower_SetBarColor(bar, UF:Runes_GetColor(bar, colors, classColor))
+			NP:ClassPower_SetBarColor(bar, NP:Runes_GetColor(bar, colors, classColor))
 		end
 	end
 end
@@ -211,7 +228,8 @@ function NP:Construct_Runes(nameplate)
 	Runes.PostUpdateColor = NP.Runes_PostUpdateColor
 
 	local texture = LSM:Fetch('statusbar', NP.db.statusbar)
-	local color = NP.db.colors.classResources.DEATHKNIGHT[0]
+	local dkColors = NP.db.colors.classResources.DEATHKNIGHT
+	local color = dkColors[0] or dkColors[1]
 
 	for i = 1, 6 do
 		local rune = CreateFrame('StatusBar', frameName..'Runes'..i, Runes)
@@ -219,6 +237,7 @@ function NP:Construct_Runes(nameplate)
 		rune:SetStatusBarColor(color.r, color.g, color.b)
 		rune.PostUpdateColor = NP.Runes_UpdateChargedColor
 		rune.__owner = Runes
+		rune:SetID(i)
 		NP.StatusBars[rune] = true
 
 		rune.bg = rune:CreateTexture(frameName..'Runes'..i..'bg', 'BORDER')
