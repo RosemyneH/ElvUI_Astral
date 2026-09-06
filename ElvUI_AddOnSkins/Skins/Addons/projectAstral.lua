@@ -5,7 +5,7 @@ local AS = E:GetModule("AddOnSkins")
 if not AS:IsAddonLODorEnabled("ProjectAstral") then return end
 
 local _G = _G
-local unpack, pairs, ipairs, type, getmetatable = unpack, pairs, ipairs, type, getmetatable
+local unpack, pairs, ipairs, type, getmetatable, math = unpack, pairs, ipairs, type, getmetatable, math
 local upper = string.upper
 local GetItemQualityColor = GetItemQualityColor
 local hooksecurefunc = hooksecurefunc
@@ -494,6 +494,805 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 			end
 		end
 	end)
+
+	local transmogSlots = {
+		"Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist",
+		"Hands", "Waist", "Legs", "Feet", "MainHand", "SecondaryHand", "Ranged",
+	}
+
+	local transmogLayout = {
+		width = 880,
+		height = 510,
+		panelLeft = 48,
+		gridLeft = 324,
+		panelRightPad = 10,
+		searchTop = -52,
+		gridTop = -78,
+		cardW = 82,
+		cardH = 112,
+		cardGap = 6,
+		modelTop = -52,
+		modelBottomPad = 68,
+		modelPad = 36,
+		hoverRotRange = 0.25,
+		searchHeight = 24,
+	}
+
+	local function StyleTransmogOptionLabel(fs)
+		if not fs then return end
+		ApplyFont(fs, 12)
+		fs:SetTextColor(0.9, 0.9, 0.9)
+	end
+
+	local function EnsureTransmogFooter(frame, model)
+		if not frame.elvPAFooter then
+			frame.elvPAFooter = CreateFrame("Frame", nil, frame)
+		end
+		frame.elvPAFooter:SetFrameLevel(model:GetFrameLevel() + 10)
+		frame.elvPAFooter:ClearAllPoints()
+		frame.elvPAFooter:SetPoint("BOTTOMLEFT", model, "BOTTOMLEFT", 0, 0)
+		frame.elvPAFooter:SetPoint("BOTTOMRIGHT", model, "BOTTOMRIGHT", 0, 0)
+		frame.elvPAFooter:SetHeight(30)
+		return frame.elvPAFooter
+	end
+
+	local PA_SEARCH_PLACEHOLDER = "|cffb2b2b2Filter Item Appearance|r"
+
+	local function IsSearchPlaceholder(text)
+		if not text or text == "" then return true end
+		return text == PA_SEARCH_PLACEHOLDER
+	end
+
+	local function RefreshSearchGhost(search)
+		if not search or not search.elvPAGhost then return end
+		local text = search:GetText() or ""
+		if search:HasFocus() or (text ~= "" and not IsSearchPlaceholder(text)) then
+			search.elvPAGhost:Hide()
+			search:SetTextColor(0.9, 0.9, 0.9)
+		else
+			if text == "" then
+				search:SetText(PA_SEARCH_PLACEHOLDER)
+			end
+			search.elvPAGhost:Show()
+			search:SetTextColor(0, 0, 0, 0)
+		end
+	end
+
+	local function SkinTransmogSearchInput(search)
+		if not search or search.__elvPASearchSkinned then return end
+		S:HandleEditBox(search)
+		ApplyFont(search, 12)
+		search:SetJustifyH("LEFT")
+		search:SetTextInsets(8, 8, 3, 3)
+		search:SetHeight(transmogLayout.searchHeight)
+		local name = search:GetName()
+		if name then
+			for _, piece in ipairs({"Left", "Middle", "Right", "Mid"}) do
+				local tex = _G[name..piece]
+				if tex then
+					tex:SetAlpha(0)
+					if tex.SetWidth then tex:SetWidth(1) end
+				end
+			end
+		end
+		if not search.elvPAGhost then
+			search.elvPAGhost = search:CreateFontString(nil, "OVERLAY")
+			search.elvPAGhost:SetPoint("LEFT", search, "LEFT", 8, 0)
+			search.elvPAGhost:SetPoint("RIGHT", search, "RIGHT", -8, 0)
+			ApplyFont(search.elvPAGhost, 12)
+			search.elvPAGhost:SetTextColor(0.75, 0.75, 0.75)
+			search.elvPAGhost:SetText("Filter Item Appearance")
+			search.elvPAGhost:SetJustifyH("CENTER")
+			search:HookScript("OnEditFocusGained", function() RefreshSearchGhost(search) end)
+			search:HookScript("OnEditFocusLost", function() RefreshSearchGhost(search) end)
+			search:HookScript("OnTextChanged", function() RefreshSearchGhost(search) end)
+		end
+		RefreshSearchGhost(search)
+		search.__elvPASearchSkinned = true
+	end
+
+	local function GetTransmogModelSize()
+		local width = transmogLayout.gridLeft - transmogLayout.panelLeft - transmogLayout.panelRightPad
+		local height = transmogLayout.height + transmogLayout.modelTop - transmogLayout.modelBottomPad
+		return width, height
+	end
+
+	local function LayoutItemSearchInput(frame, gridWidth)
+		local search = _G.ItemSearchInput
+		if not search or not frame then return end
+
+		SkinTransmogSearchInput(search)
+
+		local cardWidth = gridWidth or (6 * transmogLayout.cardW + 5 * transmogLayout.cardGap)
+		search:ClearAllPoints()
+		search:SetSize(cardWidth, transmogLayout.searchHeight)
+		search:SetPoint("TOPLEFT", frame, "TOPLEFT", transmogLayout.gridLeft, transmogLayout.searchTop)
+		search:SetFrameLevel(frame:GetFrameLevel() + 40)
+		RefreshSearchGhost(search)
+	end
+
+	local activeTransmogSlotName = "Head"
+
+	local transmogTabHooks = {
+		OnClickHeadTab = "Head",
+		OnClickShoulderTab = "Shoulder",
+		OnClickShirtTab = "Shirt",
+		OnClickChestTab = "Chest",
+		OnClickWaistTab = "Waist",
+		OnClickLegsTab = "Legs",
+		OnClickFeetTab = "Feet",
+		OnClickWristTab = "Wrist",
+		OnClickHandsTab = "Hands",
+		OnClickBackTab = "Back",
+		OnClickMainTab = "MainHand",
+		OnClickOffTab = "SecondaryHand",
+		OnClickRangedTab = "Ranged",
+		OnClickTabardTab = "Tabard",
+	}
+
+	local function SyncActiveTransmogSlotFromUI()
+		for _, name in ipairs(transmogSlots) do
+			local slot = _G["TransmogCharacter"..name.."Slot"]
+			if slot and slot.toastTexture then
+				local tex = slot.toastTexture:GetTexture()
+				if tex and tex:find("Selected", 1, true) then
+					activeTransmogSlotName = name
+					return name
+				end
+			end
+		end
+		return activeTransmogSlotName
+	end
+
+	local function GetSlotRotation(slotName)
+		if slotName == "Back" then return math.pi end
+		if slotName == "MainHand" or slotName == "Ranged" then return 1 end
+		if slotName == "SecondaryHand" then return -1 end
+		if slotName == "Hands" then return 0.85 end
+		if slotName == "Wrist" then return 0.65 end
+		if slotName == "Shoulder" then return 0.4 end
+		return 0
+	end
+
+	local slotPreviewCamera = {
+		Head = { pos = 1.35, y = 0.13, x = 0, rot = 0 },
+		Shoulder = { pos = 1.3, y = 0.08, x = 0, rot = 0.4 },
+		Back = { pos = 1.35, y = 0.1, x = 0, rot = math.pi },
+		Chest = { pos = 1.3, y = 0.06, x = 0, rot = 0 },
+		Shirt = { pos = 1.3, y = 0.06, x = 0, rot = 0 },
+		Tabard = { pos = 1.3, y = 0.04, x = 0, rot = 0 },
+		Wrist = { pos = 1.2, y = -0.01, x = 0.06, rot = 0.65 },
+		Hands = { pos = 1.2, y = -0.03, x = 0.05, rot = 0.85 },
+		Waist = { pos = 1.3, y = -0.02, x = 0, rot = 0 },
+		Legs = { pos = 1.25, y = -0.1, x = 0, rot = 0 },
+		Feet = { pos = 1.15, y = -0.16, x = 0, rot = 0.15 },
+		MainHand = { pos = 1.2, y = -0.02, x = -0.06, rot = 1 },
+		SecondaryHand = { pos = 1.2, y = -0.02, x = 0.06, rot = -1 },
+		Ranged = { pos = 1.2, y = 0, x = -0.04, rot = 1 },
+	}
+
+	local function HideTransmogPreviewBackgrounds(index)
+		for _, prefix in ipairs({ "LeftTopItemFrame", "LeftBottomItemFrame", "RightTopItemFrame", "RightBottomItemFrame" }) do
+			local sub = _G[prefix..index]
+			if sub then sub:Hide() end
+		end
+	end
+
+	local hoveredCardIndex
+
+	local function GetActiveTransmogSlotName()
+		return SyncActiveTransmogSlotFromUI()
+	end
+
+	local function GetSlotPreviewRotation(slotName, preset)
+		if preset and preset.rot ~= nil then
+			return preset.rot
+		end
+		return GetSlotRotation(slotName)
+	end
+
+	local function ApplyCardModelRotation(model, slotName, preset, hoverDelta)
+		if not model then return end
+		local baseRot = GetSlotPreviewRotation(slotName, preset)
+		model.elvPABaseRotation = baseRot
+		local extra = (hoverDelta or 0) * transmogLayout.hoverRotRange
+		model:SetRotation(baseRot + extra, false)
+	end
+
+	local function HidePerSlotActionButtons()
+		for _, name in ipairs(transmogSlots) do
+			local slot = _G["TransmogCharacter"..name.."Slot"]
+			if slot then
+				if slot.restoreButton then slot.restoreButton:Hide() end
+				if slot.hideButton then slot.hideButton:Hide() end
+			end
+		end
+	end
+
+	local function SetCardButtonIconVisible(button, visible)
+		if not button then return end
+		local icon = _G[button:GetName().."IconTexture"]
+		if icon then
+			if visible then icon:Show() else icon:Hide() end
+		end
+	end
+
+	local function LayoutCardModel(model, child)
+		if not model or not child then return end
+		model:SetParent(child)
+		model:SetFrameLevel(child:GetFrameLevel() + 1)
+		local size = math.max(transmogLayout.cardW, transmogLayout.cardH) + transmogLayout.modelPad
+		model:ClearAllPoints()
+		model:SetSize(size, size)
+		model:SetPoint("CENTER", child, "CENTER", 0, -1)
+	end
+
+	local function ApplySlotPreviewCamera(model, itemID, panX)
+		if not model or not itemID or itemID <= 0 then return end
+		local slotName = GetActiveTransmogSlotName()
+		local preset = slotPreviewCamera[slotName] or slotPreviewCamera.Chest
+
+		model:Show()
+		model:SetUnit("player")
+		model:Undress()
+		model:TryOn(itemID)
+		model:SetPosition(preset.pos, preset.y, preset.x + (panX or 0))
+		ApplyCardModelRotation(model, slotName, preset)
+		model.elvPACamera = preset
+		model.elvPASlotName = slotName
+	end
+
+	local function RefreshTransmogCardPreview(index, isHover)
+		local child = _G["ItemChild"..index]
+		local model = _G["ItemModel"..index]
+		local button = _G["ItemButton"..index]
+		if not child then return end
+
+		local itemID = child:GetID()
+		if itemID and itemID > 0 then
+			LayoutCardModel(model, child)
+			ApplySlotPreviewCamera(model, itemID, 0)
+			if button then
+				button:SetAlpha(0)
+				button:EnableMouse(true)
+				SetCardButtonIconVisible(button, false)
+			end
+			child:SetAlpha(1)
+			if isHover then
+				child:SetBackdropBorderColor(unpack(E.media.rgbvaluecolor))
+			else
+				child:SetBackdropBorderColor(unpack(E.media.bordercolor))
+			end
+			child:Show()
+		else
+			if model then model:Hide() end
+			if button then
+				button:SetAlpha(1)
+				SetCardButtonIconVisible(button, true)
+			end
+			child:Hide()
+		end
+	end
+
+	local function RefreshAllTransmogCardPreviews()
+		for i = 1, 6 do
+			RefreshTransmogCardPreview(i, hoveredCardIndex == i)
+		end
+	end
+
+	local function ClearTransmogCardHover(index)
+		local model = _G["ItemModel"..index]
+		if model then model:SetScript("OnUpdate", nil) end
+		if hoveredCardIndex == index then hoveredCardIndex = nil end
+		RefreshTransmogCardPreview(index, false)
+	end
+
+	local function ClearAllTransmogCardHovers()
+		hoveredCardIndex = nil
+		for i = 1, 6 do
+			local model = _G["ItemModel"..i]
+			if model then model:SetScript("OnUpdate", nil) end
+		end
+		RefreshAllTransmogCardPreviews()
+	end
+
+	local function ShowTransmogCardHover(index)
+		local child = _G["ItemChild"..index]
+		local model = _G["ItemModel"..index]
+		local itemID = child and child:GetID()
+		if not itemID or itemID <= 0 then return end
+		if hoveredCardIndex and hoveredCardIndex ~= index then
+			ClearTransmogCardHover(hoveredCardIndex)
+		end
+		hoveredCardIndex = index
+		RefreshTransmogCardPreview(index, true)
+
+		if not model then return end
+		model:SetScript("OnUpdate", function(self)
+			local parent = self:GetParent()
+			if hoveredCardIndex ~= index or not parent then
+				self:SetScript("OnUpdate", nil)
+				return
+			end
+			local scale = UIParent:GetEffectiveScale()
+			local left, width = parent:GetLeft(), parent:GetWidth()
+			if not left or not width or width <= 0 then return end
+			local mx = select(1, GetCursorPosition()) / scale
+			local delta = (mx - (left + width * 0.5)) / width
+			local preset = self.elvPACamera or slotPreviewCamera.Chest
+			local slotName = self.elvPASlotName or GetActiveTransmogSlotName()
+			self:SetPosition(preset.pos, preset.y, preset.x)
+			ApplyCardModelRotation(self, slotName, preset, delta)
+		end)
+	end
+
+	local function HookTransmogCardHover(child, index)
+		if not child or child.__elvPAHoverHooked then return end
+		child.__elvPAHoverHooked = true
+		child:EnableMouse(true)
+
+		local function onEnter()
+			ShowTransmogCardHover(index)
+		end
+
+		local function onLeave()
+			E:Delay(0.05, function()
+				if child:IsMouseOver() or (child.itemButton and child.itemButton:IsMouseOver()) then return end
+				ClearTransmogCardHover(index)
+			end)
+		end
+
+		child:HookScript("OnEnter", onEnter)
+		child:HookScript("OnLeave", onLeave)
+
+		if child.itemButton then
+			child.itemButton:HookScript("OnEnter", onEnter)
+			child.itemButton:HookScript("OnLeave", onLeave)
+		end
+	end
+
+	local function LayoutTransmogAppearanceCard(index, slot, frame)
+		local child = _G["ItemChild"..index]
+		if not frame or not child then return end
+
+		local x = transmogLayout.gridLeft + (slot - 1) * (transmogLayout.cardW + transmogLayout.cardGap)
+
+		child:ClearAllPoints()
+		child:SetSize(transmogLayout.cardW, transmogLayout.cardH)
+		child:SetPoint("TOPLEFT", frame, "TOPLEFT", x, transmogLayout.gridTop)
+		child.__elvPAIndex = index
+		if child.SetClipsChildren then child:SetClipsChildren(true) end
+
+		HideTransmogPreviewBackgrounds(index)
+
+		local model = _G["ItemModel"..index]
+		if model then
+			model:SetParent(child)
+			model:SetFrameLevel(child:GetFrameLevel() + 1)
+		end
+
+		local button = _G["ItemButton"..index]
+		if button then
+			button:SetParent(child)
+			button:SetFrameLevel(child:GetFrameLevel() + 3)
+			button:ClearAllPoints()
+			button:SetSize(transmogLayout.cardW, transmogLayout.cardH)
+			button:SetPoint("CENTER", child, "CENTER", 0, 0)
+		end
+
+		HookTransmogCardHover(child, index)
+		RefreshTransmogCardPreview(index, hoveredCardIndex == index)
+	end
+
+	local function LayoutVisibleAppearanceCards()
+		local frame = _G.TransmogrificationFrame
+		if not frame then return end
+
+		local order = {}
+		for i = 1, 6 do
+			local child = _G["ItemChild"..i]
+			local itemID = child and child:GetID()
+			if itemID and itemID > 0 then
+				order[#order + 1] = i
+			else
+				if child then child:Hide() end
+				local model = _G["ItemModel"..i]
+				if model then model:Hide() end
+			end
+		end
+
+		local count = #order
+		local gridWidth = count > 0 and (count * transmogLayout.cardW + (count - 1) * transmogLayout.cardGap) or transmogLayout.cardW
+
+		if _G.ItemSearchInput then
+			LayoutItemSearchInput(frame, gridWidth)
+		end
+
+		for slot, index in ipairs(order) do
+			LayoutTransmogAppearanceCard(index, slot, frame)
+		end
+	end
+
+	local function ReconcileTransmogCards()
+		SyncActiveTransmogSlotFromUI()
+		for i = 1, 6 do
+			HideTransmogPreviewBackgrounds(i)
+			local child = _G["ItemChild"..i]
+			local button = _G["ItemButton"..i]
+			if child and button then
+				button:SetParent(child)
+				button:ClearAllPoints()
+				button:SetSize(transmogLayout.cardW, transmogLayout.cardH)
+				button:SetPoint("CENTER", child, "CENTER", 0, 0)
+			end
+		end
+		LayoutVisibleAppearanceCards()
+		HidePerSlotActionButtons()
+	end
+
+	local function ApplyTransmogCardIdleState()
+		for i = 1, 6 do
+			local child = _G["ItemChild"..i]
+			local button = _G["ItemButton"..i]
+			if child and child.modelBG then child.modelBG:Hide() end
+			if button and child then
+				button:SetParent(child)
+				button:Show()
+				button:ClearAllPoints()
+				button:SetSize(transmogLayout.cardW, transmogLayout.cardH)
+				button:SetPoint("CENTER", child, "CENTER", 0, 0)
+			end
+		end
+		ReconcileTransmogCards()
+	end
+
+	local function LayoutTransmogrificationFrame()
+		local frame = _G.TransmogrificationFrame
+		if not frame then return end
+
+		frame:SetSize(transmogLayout.width, transmogLayout.height)
+
+		if frame.TitleText then
+			frame.TitleText:ClearAllPoints()
+			frame.TitleText:SetPoint("TOP", frame, "TOP", 0, -12)
+		end
+		if frame.SubtitleText then
+			frame.SubtitleText:ClearAllPoints()
+			frame.SubtitleText:SetPoint("TOP", frame.TitleText, "BOTTOM", 0, -2)
+		end
+
+		if _G.TransmogCloseButton then
+			_G.TransmogCloseButton:ClearAllPoints()
+			_G.TransmogCloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -6)
+		end
+
+		if _G.TransmogrificationModelFrame then
+			local model = _G.TransmogrificationModelFrame
+			local modelW, modelH = GetTransmogModelSize()
+			model:ClearAllPoints()
+			model:SetSize(modelW, modelH)
+			model:SetPoint("TOPLEFT", frame, "TOPLEFT", transmogLayout.panelLeft, transmogLayout.modelTop)
+			model:SetPosition(0.9, 0.03, 0)
+			model:SetRotation(0, false)
+
+			if model.backdrop then
+				model.backdrop:ClearAllPoints()
+				model.backdrop:SetPoint("TOPLEFT", model, "TOPLEFT", -2, 2)
+				model.backdrop:SetPoint("BOTTOMRIGHT", model, "BOTTOMRIGHT", 2, -2)
+			end
+
+			if _G.TransmogrificationModelFrameRotateLeftButton then
+				_G.TransmogrificationModelFrameRotateLeftButton:ClearAllPoints()
+				_G.TransmogrificationModelFrameRotateRightButton:ClearAllPoints()
+				_G.TransmogrificationModelFrameRotateLeftButton:SetPoint("TOP", model, "TOP", -20, 10)
+				_G.TransmogrificationModelFrameRotateRightButton:SetPoint("LEFT", _G.TransmogrificationModelFrameRotateLeftButton, "RIGHT", 4, 0)
+			end
+
+			local footer = EnsureTransmogFooter(frame, model)
+
+			if _G.RestoreAllButton then
+				_G.RestoreAllButton:SetParent(footer)
+				_G.RestoreAllButton:ClearAllPoints()
+				_G.RestoreAllButton:SetSize(24, 24)
+				_G.RestoreAllButton:SetPoint("BOTTOMLEFT", footer, "BOTTOMLEFT", 4, 3)
+				_G.RestoreAllButton:Show()
+			end
+			if _G.HideAllButton then
+				_G.HideAllButton:SetParent(footer)
+				_G.HideAllButton:ClearAllPoints()
+				_G.HideAllButton:SetSize(24, 24)
+				_G.HideAllButton:SetPoint("LEFT", _G.RestoreAllButton, "RIGHT", 6, 0)
+				_G.HideAllButton:Show()
+			end
+
+			if _G.ShowHelmCheckBox then
+				StyleTransmogOptionLabel(_G.ShowHelmText)
+				StyleTransmogOptionLabel(_G.ShowCloakText)
+				_G.ShowHelmCheckBox:SetParent(footer)
+				_G.ShowHelmText:SetParent(footer)
+				_G.ShowCloakCheckBox:SetParent(footer)
+				_G.ShowCloakText:SetParent(footer)
+
+				_G.ShowHelmCheckBox:ClearAllPoints()
+				_G.ShowHelmCheckBox:SetPoint("LEFT", footer, "CENTER", -58, 2)
+				_G.ShowHelmText:ClearAllPoints()
+				_G.ShowHelmText:SetPoint("LEFT", _G.ShowHelmCheckBox, "RIGHT", 4, 0)
+				_G.ShowCloakCheckBox:ClearAllPoints()
+				_G.ShowCloakCheckBox:SetPoint("LEFT", _G.ShowHelmText, "RIGHT", 14, 0)
+				_G.ShowCloakText:ClearAllPoints()
+				_G.ShowCloakText:SetPoint("LEFT", _G.ShowCloakCheckBox, "RIGHT", 4, 0)
+			end
+		end
+
+		LayoutItemSearchInput(frame)
+
+		LayoutVisibleAppearanceCards()
+
+		if _G.TransmogWarningFrame then
+			_G.TransmogWarningFrame:ClearAllPoints()
+			_G.TransmogWarningFrame:SetPoint("CENTER", _G.TransmogrificationModelFrame or frame, "CENTER", 0, 0)
+		end
+
+		if not _G.TransmogrificationModelFrame then
+			if _G.RestoreAllButton then
+				_G.RestoreAllButton:ClearAllPoints()
+				_G.RestoreAllButton:SetSize(24, 24)
+				_G.RestoreAllButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 14, 34)
+				_G.RestoreAllButton:Show()
+			end
+			if _G.HideAllButton then
+				_G.HideAllButton:ClearAllPoints()
+				_G.HideAllButton:SetSize(24, 24)
+				_G.HideAllButton:SetPoint("LEFT", _G.RestoreAllButton, "RIGHT", 6, 0)
+				_G.HideAllButton:Show()
+			end
+		end
+
+		if _G.TransmogPaginationText then
+			_G.TransmogPaginationText:ClearAllPoints()
+			_G.TransmogPaginationText:SetPoint("BOTTOM", frame, "BOTTOM", 96, 34)
+		end
+		if _G.LeftButton then
+			_G.LeftButton:ClearAllPoints()
+			_G.LeftButton:SetPoint("RIGHT", _G.TransmogPaginationText, "LEFT", -6, 0)
+		end
+		if _G.RightButton then
+			_G.RightButton:ClearAllPoints()
+			_G.RightButton:SetPoint("LEFT", _G.TransmogPaginationText, "RIGHT", 6, 0)
+		end
+
+		if _G.SaveButton then
+			_G.SaveButton:ClearAllPoints()
+			_G.SaveButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 30)
+		end
+	end
+
+	local function SkinTransmogIconButton(btn, texturePath, iconSize)
+		if not btn or btn.__elvPASkinned then return end
+		if not btn.isSkinned then
+			btn:SetTemplate("Default", true, true)
+			btn:StyleButton(false)
+		end
+		local size = iconSize or 22
+		if not btn.elvPAIcon then
+			btn.elvPAIcon = btn:CreateTexture(nil, "ARTWORK")
+			btn.elvPAIcon:SetPoint("CENTER")
+		end
+		btn.elvPAIcon:SetSize(size, size)
+		btn.elvPAIcon:SetTexture(texturePath)
+		btn.elvPAIcon:Show()
+		btn.__elvPASkinned = true
+	end
+
+	local function RefreshTransmogSlotBorders()
+		for _, name in ipairs(transmogSlots) do
+			local slot = _G["TransmogCharacter"..name.."Slot"]
+			if slot and slot.backdrop then
+				if name == activeTransmogSlotName then
+					slot:SetBackdropBorderColor(unpack(E.media.rgbvaluecolor))
+				else
+					slot:SetBackdropBorderColor(unpack(E.media.bordercolor))
+				end
+			end
+		end
+	end
+
+	local function SkinTransmogSlot(slot)
+		if not slot or slot.__elvPASkinned then return end
+
+		slot:StripTextures()
+		slot:SetTemplate("Default", true, true)
+		slot:StyleButton(false)
+
+		local icon = _G[slot:GetName().."IconTexture"]
+		if icon then
+			icon:SetInside()
+			icon:SetTexCoord(unpack(E.TexCoords))
+		end
+
+		if slot.toastTexture then slot.toastTexture:Hide() end
+		if slot.ignoreTexture then slot.ignoreTexture:SetAlpha(0) end
+
+		if slot.restoreButton then slot.restoreButton:Hide() end
+		if slot.hideButton then slot.hideButton:Hide() end
+
+		slot.__elvPASkinned = true
+	end
+
+	local function SkinTransmogItemChild(child, index)
+		if not child or child.__elvPASkinned then return end
+
+		if child.SetBackdrop then child:SetBackdrop(nil) end
+		child:StripTextures(true)
+		child:CreateBackdrop("Default")
+
+		if not child.modelBG then
+			child.modelBG = child:CreateTexture(nil, "BACKGROUND")
+			child.modelBG:SetAllPoints(child.backdrop)
+			child.modelBG:SetTexture(E.media.blankTex)
+			child.modelBG:SetVertexColor(unpack(E.media.backdropcolor))
+			child.modelBG:Hide()
+		end
+
+		if index then HideTransmogPreviewBackgrounds(index) end
+
+		if child.itemButton then
+			child.itemButton:SetParent(child)
+			child.itemButton:Show()
+			child.itemButton:StripTextures()
+			child.itemButton:SetTemplate("Default", true, true)
+			child.itemButton:StyleButton(false)
+
+			local icon = _G[child.itemButton:GetName().."IconTexture"]
+			if icon then
+				icon:SetInside()
+				icon:SetTexCoord(unpack(E.TexCoords))
+			end
+			if child.itemButton.toastTexture then child.itemButton.toastTexture:Hide() end
+		end
+
+		child.__elvPASkinned = true
+	end
+
+	local function SkinTransmogrificationFrame()
+		local frame = _G.TransmogrificationFrame
+		if not frame or frame.__elvPATransmogSkinned then return end
+
+		if frame.DialogBG then frame.DialogBG:Hide() end
+		UI.AstralBackdrop(frame)
+
+		if frame.TitleText then
+			ApplyFont(frame.TitleText, 16)
+			frame.TitleText:SetTextColor(1, 1, 1)
+		end
+		if frame.SubtitleText then
+			ApplyFont(frame.SubtitleText, 12)
+			frame.SubtitleText:SetTextColor(unpack(E.media.rgbvaluecolor))
+		end
+
+		if _G.TransmogCloseButton then
+			UI.CosmicCloseButton(_G.TransmogCloseButton)
+		end
+
+		for _, name in ipairs(transmogSlots) do
+			SkinTransmogSlot(_G["TransmogCharacter"..name.."Slot"])
+		end
+
+		if _G.ItemSearchInput then
+			SkinTransmogSearchInput(_G.ItemSearchInput)
+		end
+		if _G.ShowCloakCheckBox then S:HandleCheckBox(_G.ShowCloakCheckBox) end
+		if _G.ShowHelmCheckBox then S:HandleCheckBox(_G.ShowHelmCheckBox) end
+		if _G.LeftButton then S:HandleNextPrevButton(_G.LeftButton, "left") end
+		if _G.RightButton then S:HandleNextPrevButton(_G.RightButton, "right") end
+
+		if _G.TransmogrificationModelFrameRotateLeftButton then
+			S:HandleRotateButton(_G.TransmogrificationModelFrameRotateLeftButton)
+		end
+		if _G.TransmogrificationModelFrameRotateRightButton then
+			S:HandleRotateButton(_G.TransmogrificationModelFrameRotateRightButton)
+		end
+
+		if _G.TransmogrificationModelFrame then
+			_G.TransmogrificationModelFrame:CreateBackdrop("Default")
+			_G.TransmogrificationModelFrame.backdrop:SetOutside(_G.TransmogrificationModelFrame, 2, 2)
+		end
+
+		if _G.SaveButton then
+			if _G.SaveBackgroundTexture then _G.SaveBackgroundTexture:Hide() end
+			if _G.SaveTexture then _G.SaveTexture:Hide() end
+			_G.SaveButton:StripTextures()
+			S:HandleButton(_G.SaveButton, true)
+			SetItemButtonTexture(_G.SaveButton, "Interface\\AddOns\\ProjectAstral\\Transmogrification\\assets\\Transmog-Icon")
+			local saveIcon = _G.SaveButton:GetNormalTexture()
+			if saveIcon then
+				saveIcon:SetInside()
+				saveIcon:SetTexCoord(unpack(E.TexCoords))
+			end
+		end
+
+		if _G.RestoreAllButton then
+			SkinTransmogIconButton(_G.RestoreAllButton, "Interface\\AddOns\\ProjectAstral\\Transmogrification\\assets\\Transmog-Overlay-Restore", 18)
+		end
+		if _G.HideAllButton then
+			SkinTransmogIconButton(_G.HideAllButton, "Interface\\AddOns\\ProjectAstral\\Transmogrification\\assets\\Transmog-Overlay-Hide", 16)
+		end
+
+		for func, slotName in pairs(transmogTabHooks) do
+			if _G[func] then
+				hooksecurefunc(func, function() activeTransmogSlotName = slotName end)
+			end
+		end
+
+		StyleTransmogOptionLabel(_G.ShowCloakText)
+		StyleTransmogOptionLabel(_G.ShowHelmText)
+		ApplyFont(_G.TransmogPaginationText, 12)
+		ApplyFont(_G.TransmogWarningText, 12)
+
+		for i = 1, 6 do
+			SkinTransmogItemChild(_G["ItemChild"..i], i)
+		end
+
+		LayoutTransmogrificationFrame()
+
+		if PA.TransmogHandlers and PA.TransmogHandlers.InitTab then
+			hooksecurefunc(PA.TransmogHandlers, "InitTab", function()
+				SyncActiveTransmogSlotFromUI()
+				for i = 1, 6 do
+					local child = _G["ItemChild"..i]
+					local model = _G["ItemModel"..i]
+					local itemID = child and child:GetID()
+					if model and itemID and itemID > 0 then
+						ApplySlotPreviewCamera(model, itemID, 0)
+					end
+				end
+				E:Delay(0, function()
+					LayoutTransmogrificationFrame()
+					ReconcileTransmogCards()
+				end)
+				E:Delay(0.1, function()
+					ReconcileTransmogCards()
+				end)
+			end)
+		end
+
+		if _G.SetTab then
+			hooksecurefunc("SetTab", function()
+				SyncActiveTransmogSlotFromUI()
+				E:Delay(0, function()
+					LayoutTransmogrificationFrame()
+					RefreshTransmogSlotBorders()
+					ReconcileTransmogCards()
+					ClearAllTransmogCardHovers()
+				end)
+			end)
+		end
+		if _G.OnClickTransmogButton then
+			hooksecurefunc("OnClickTransmogButton", function()
+				E:Delay(0, function()
+					LayoutTransmogrificationFrame()
+					RefreshTransmogSlotBorders()
+					ApplyTransmogCardIdleState()
+					ClearAllTransmogCardHovers()
+				end)
+			end)
+		end
+
+		frame:HookScript("OnShow", function()
+			LayoutTransmogrificationFrame()
+			RefreshTransmogSlotBorders()
+			ApplyTransmogCardIdleState()
+			HidePerSlotActionButtons()
+			ClearAllTransmogCardHovers()
+		end)
+		RefreshTransmogSlotBorders()
+		frame.__elvPATransmogSkinned = true
+	end
+
+	if _G.OnTransmogrificationFrameLoad then
+		hooksecurefunc("OnTransmogrificationFrameLoad", SkinTransmogrificationFrame)
+	end
+	SkinTransmogrificationFrame()
 
 	if _G.PAMainMenuFrame then
 		UI.AstralBackdrop(_G.PAMainMenuFrame)
