@@ -2,10 +2,6 @@
 
 # ElvUI for Project Astral
 
-This is **not** a generic ElvUI fork that happens to be named Astral.
-
-It is an ElvUI pack built **for the Project Astral World of Warcraft 3.3.5a realm** — stock Wrath clients, the Project Astral hub and skill tree, AwesomeWotLK when present, and no Ascension-only APIs.
-
 <br/>
 
 [![WoW](https://img.shields.io/badge/WoW-3.3.5a-6f42c1?style=flat-square)](#)
