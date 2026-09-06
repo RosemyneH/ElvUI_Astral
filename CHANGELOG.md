@@ -12,6 +12,7 @@ and this project uses [Semantic Versioning](https://semver.org/).
 * Nameplates no longer error on 3.3.5 / AwesomeWotLK (`SetShown`, `GetAtlas`, GUID, faction)
 * Friendly plates spawn and draw; stacking/overlap uses AwesomeWotLK CVars instead of fake `C_NamePlateManager`
 * Saved nameplate options are not reset on `/reload` (semver `7.32.0` was parsed as nil)
+* Stock RDF (`LFDQueueFrame`) is skinned again when Ascension LFG is not present
 
 ## [7.32.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.32.0) (2026-09-06)
 
