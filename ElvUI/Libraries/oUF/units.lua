@@ -6,7 +6,8 @@ local enableTargetUpdate = Private.enableTargetUpdate
 
 -- Handles unit specific actions.
 function oUF:HandleUnit(object, unit)
-	local unit = object.unit or unit
+	unit = object.unit or unit
+	if not unit then return end
 	if(unit == 'target') then
 		object:RegisterEvent('PLAYER_TARGET_CHANGED', object.UpdateAllElements)
 	elseif(unit == 'mouseover') then

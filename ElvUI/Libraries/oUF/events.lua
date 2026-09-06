@@ -18,7 +18,7 @@ function Private.UpdateUnits(frame, unit, realUnit)
 	if(frame.unit ~= unit or frame.realUnit ~= realUnit) then
 		frame.unit = unit
 		frame.realUnit = realUnit
-		frame.id = unit:match('^.-(%d+)')
+		frame.id = unit and unit:match('^.-(%d+)')
 		return true
 	end
 end

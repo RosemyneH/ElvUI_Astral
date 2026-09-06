@@ -62,23 +62,28 @@ local function Update(self)
 
 	HideIndicators(element)
 
-	if element.style ~= 'none' then
-		local isTarget = UnitIsUnit(self.unit, 'target')
-		local lowHealth = element.lowHealthThreshold > 0
-		if isTarget and (element.preferGlowColor or not lowHealth) then
-			ShowIndicators(element, isTarget, NP.db.colors.glowColor)
-		elseif lowHealth then
-			local health, maxHealth = UnitHealth(self.unit), UnitHealthMax(self.unit)
-			local perc = (maxHealth > 0 and health/maxHealth) or 0
+	if not self.unit or element.style == 'none' then
+		if element.PostUpdate then
+			return element:PostUpdate(self.unit)
+		end
+		return
+	end
 
-			-- color tables are class updated in UpdateMedia
-			if perc <= element.lowHealthThreshold * 0.5 then
-				ShowIndicators(element, isTarget, NP.db.colors.lowHealthHalf)
-			elseif perc <= element.lowHealthThreshold then
-				ShowIndicators(element, isTarget, NP.db.colors.lowHealthColor)
-			elseif isTarget then
-				ShowIndicators(element, isTarget, NP.db.colors.glowColor)
-			end
+	local isTarget = UnitIsUnit(self.unit, 'target')
+	local lowHealth = element.lowHealthThreshold > 0
+	if isTarget and (element.preferGlowColor or not lowHealth) then
+		ShowIndicators(element, isTarget, NP.db.colors.glowColor)
+	elseif lowHealth then
+		local health, maxHealth = UnitHealth(self.unit), UnitHealthMax(self.unit)
+		local perc = (maxHealth > 0 and health/maxHealth) or 0
+
+		-- color tables are class updated in UpdateMedia
+		if perc <= element.lowHealthThreshold * 0.5 then
+			ShowIndicators(element, isTarget, NP.db.colors.lowHealthHalf)
+		elseif perc <= element.lowHealthThreshold then
+			ShowIndicators(element, isTarget, NP.db.colors.lowHealthColor)
+		elseif isTarget then
+			ShowIndicators(element, isTarget, NP.db.colors.glowColor)
 		end
 	end
 

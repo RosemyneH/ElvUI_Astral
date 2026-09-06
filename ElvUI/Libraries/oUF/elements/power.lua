@@ -100,7 +100,7 @@ local UnitPowerType = UnitPowerType
 local UnitReaction = UnitReaction
 
 local function UpdateColor(self, event, unit)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 	local element = self.Power
 
 	local ptype, ptoken, altR, altG, altB = UnitPowerType(unit)
@@ -170,7 +170,7 @@ local function ColorPath(self, ...)
 end
 
 local function Update(self, event, unit)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 	local element = self.Power
 
 	--[[ Callback: Power:PreUpdate(unit)

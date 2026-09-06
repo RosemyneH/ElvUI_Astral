@@ -98,7 +98,7 @@ end
 NP.QuestIcons.CheckTextForQuest = CheckTextForQuest
 
 local function GetQuests(unitID)
-	if IsInInstance() then return end
+	if not unitID or IsInInstance() then return end
 
 	E.ScanTooltip:SetOwner(_G.UIParent, 'ANCHOR_NONE')
 	E.ScanTooltip:SetUnit(unitID)
@@ -184,7 +184,7 @@ local function Update(self, event, arg1)
 	if not element then return end
 
 	local unit = (event == 'UNIT_NAME_UPDATE' and arg1) or self.unit
-	if unit ~= self.unit then return end
+	if not unit or unit ~= self.unit then return end
 
 	-- UNIT_NAME_UPDATE can fire in bursts; each Update is a full tooltip scan.
 	-- Quest progress changes still come through instantly via QUEST_LOG_UPDATE.

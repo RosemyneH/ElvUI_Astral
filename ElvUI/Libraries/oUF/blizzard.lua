@@ -18,6 +18,97 @@ local offScreenParent = CreateFrame('Frame', nil, UIParent)
 offScreenParent:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", 0, -128)
 offScreenParent:SetFrameLevel(0)
 
+local function CacheBlizzNameplateData(nameplate, nameFS)
+	if not nameplate then return end
+	if nameFS and nameFS.GetText then
+		local text = nameFS:GetText()
+		if text and text ~= '' then
+			nameplate.__elvBlizzName = text
+		end
+	end
+	if nameFS and nameFS.GetTextColor then
+		nameplate.__elvBlizzNameR, nameplate.__elvBlizzNameG, nameplate.__elvBlizzNameB = nameFS:GetTextColor()
+	end
+end
+
+function oUF:SyncLegacyPlateName(nameplate)
+	return oUF:RefreshLegacyPlateName(nameplate)
+end
+
+function oUF:RefreshLegacyPlateName(nameplate)
+	if not nameplate then return end
+
+	local nameFS = nameplate.blizzName
+	if nameFS and nameFS.GetText then
+		local text = nameFS:GetText()
+		if text and text ~= '' then
+			nameplate.__elvBlizzName = text
+			if nameFS.GetTextColor then
+				nameplate.__elvBlizzNameR, nameplate.__elvBlizzNameG, nameplate.__elvBlizzNameB = nameFS:GetTextColor()
+			end
+			return text
+		end
+	end
+
+	for i = 1, select('#', nameplate:GetRegions()) do
+		local region = select(i, nameplate:GetRegions())
+		if region and region.GetText then
+			local text = region:GetText()
+			if text and text ~= '' then
+				nameplate.__elvBlizzName = text
+				if region.GetTextColor then
+					nameplate.__elvBlizzNameR, nameplate.__elvBlizzNameG, nameplate.__elvBlizzNameB = region:GetTextColor()
+				end
+				return text
+			end
+		end
+	end
+
+	return nameplate.__elvBlizzName
+end
+
+local function IsElvNameplateFrame(frame)
+	if not frame then return end
+	if frame.isNamePlate then return true end
+	local name = frame.GetName and frame:GetName()
+	return name and name:match('^ElvNP_')
+end
+
+local function HideStockNameplateArt(nameplate, keepHealthBar)
+	oUF:RefreshLegacyPlateName(nameplate)
+
+	for _, region in ipairs({nameplate:GetRegions()}) do
+		if region then
+			region:SetParent(hiddenParent)
+			region:SetAlpha(0)
+			region:Hide()
+		end
+	end
+
+	for _, child in ipairs({nameplate:GetChildren()}) do
+		if child and not IsElvNameplateFrame(child) and not child.unitFrame then
+			if child == nameplate.HealthBar then
+				if not keepHealthBar then
+					child:SetAlpha(0)
+					child:Hide()
+					local ntex = child.GetStatusBarTexture and child:GetStatusBarTexture()
+					if ntex and ntex.SetAlpha then ntex:SetAlpha(0) end
+				end
+			else
+				child:SetParent(hiddenParent)
+				child:SetAlpha(0)
+				child:Hide()
+			end
+		end
+	end
+end
+
+function oUF:SuppressStockNameplateArt(nameplate, keepHealthBar)
+	if not nameplate or _G.ELVUI_HAS_AWESOME_NAMEPLATES then return end
+	if keepHealthBar == nil then keepHealthBar = true end
+	HideStockNameplateArt(nameplate, keepHealthBar)
+end
+
 local function handleFrame(baseName)
 	local frame
 	if(type(baseName) == 'string') then
@@ -60,6 +151,21 @@ function oUF:DisableBlizzardNamePlate(nameplate)
 	if not nameplate or nameplate.__elvBlizzDisabled then return end
 	nameplate.__elvBlizzDisabled = true
 
+	local highlight, nameFS
+	for i = 1, select('#', nameplate:GetRegions()) do
+		local region = select(i, nameplate:GetRegions())
+		if region and region.GetText and not nameFS then
+			nameFS = region
+		elseif region and region.GetTexture and region:GetTexture() == [[Interface\Tooltips\Nameplate-Border]] then
+			highlight = highlight or select(3, nameplate:GetRegions())
+		end
+	end
+	if not highlight then
+		highlight = select(3, nameplate:GetRegions())
+	end
+	nameplate.blizzHighlight = highlight
+	nameplate.blizzName = nameFS
+
 	local blizzElements = {nameplate:GetRegions()}
 	local healthBar, castBar
 	for _, child in ipairs({nameplate:GetChildren()}) do
@@ -75,9 +181,29 @@ function oUF:DisableBlizzardNamePlate(nameplate)
 		end
 	end
 
-	nameplate.blizzHighlight = blizzElements[6]
 	nameplate.HealthBar = healthBar
 	nameplate.CastBar = castBar
+
+	CacheBlizzNameplateData(nameplate, nameFS)
+
+	if healthBar then
+		nameplate.__hpMin, nameplate.__hpMax = healthBar:GetMinMaxValues()
+		nameplate.__hpVal = healthBar:GetValue()
+		nameplate.__hpR, nameplate.__hpG, nameplate.__hpB = healthBar:GetStatusBarColor()
+	end
+
+	-- ʕ •ᴥ•ʔ✿ Stock 3.3.5 positions the health bar in the world; keep it visible as HP ✿ ʕ •ᴥ•ʔ
+	if not _G.ELVUI_HAS_AWESOME_NAMEPLATES then
+		HideStockNameplateArt(nameplate, true)
+		return
+	end
+
+	local w, h = nameplate:GetWidth(), nameplate:GetHeight()
+	if healthBar then
+		local bw, bh = healthBar:GetWidth(), healthBar:GetHeight()
+		if not w or w < 1 then w = bw end
+		if not h or h < 1 then h = bh end
+	end
 
 	for _, child in ipairs(blizzElements) do
 		if child then
@@ -86,15 +212,15 @@ function oUF:DisableBlizzardNamePlate(nameplate)
 			child:Hide()
 			if child.SetTexture then
 				child:SetTexture()
-			elseif child.SetStatusBarTexture then
-				child:SetStatusBarTexture(nil)
 			end
 		end
 	end
 
+	if w and w > 1 then nameplate:SetWidth(w) end
+	if h and h > 1 then nameplate:SetHeight(h) end
+
 	if castBar then
 		castBar:SetParent(offScreenParent)
-		castBar:SetStatusBarTexture(nil)
 		castBar:SetAlpha(0)
 		castBar:Hide()
 	end

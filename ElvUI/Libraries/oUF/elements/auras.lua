@@ -356,7 +356,7 @@ local function filterIcons(element, unit, filter, limit, isDebuff, offset, dontH
 end
 
 local function UpdateAuras(self, event, unit)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 
 	local auras = self.Auras
 	if(auras) then
@@ -502,7 +502,7 @@ local function UpdateAuras(self, event, unit)
 end
 
 local function Update(self, event, unit)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 
 	UpdateAuras(self, event, unit)
 

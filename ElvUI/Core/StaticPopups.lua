@@ -128,6 +128,17 @@ E.PopupDialogs.CLIENT_UPDATE_REQUEST = {
 	showAlert = 1
 }
 
+E.PopupDialogs.NAMEPLATE_NO_AWESOMEWOTLK = {
+	text = L["NAMEPLATE_NO_AWESOMEWOTLK"],
+	button1 = OKAY,
+	button2 = L["Don't show this again"],
+	OnAccept = E.noop,
+	OnCancel = function() E.global.ignoreAwesomeWotLKNameplates = true end,
+	showAlert = 1,
+	whileDead = 1,
+	hideOnEscape = 1
+}
+
 E.PopupDialogs.CONFIRM_LOSE_BINDING_CHANGES = {
 	text = CONFIRM_LOSE_BINDING_CHANGES,
 	button1 = OKAY,

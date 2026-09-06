@@ -240,12 +240,17 @@ if not GroupUtil then
 	end
 end
 
--- ʕ •ᴥ•ʔ✿ AwesomeWotLK injects real C_NamePlate; never replace it ✿ ʕ •ᴥ•ʔ
-_G.ELVUI_AWESOMEWOTLK = not not (
-	(type(CopyToClipboard) == "function")
-	or (type(FlashWindow) == "function")
-	or (C_NamePlate and type(C_NamePlate.GetNamePlates) == "function")
+-- ʕ •ᴥ•ʔ✿ Detect native nameplate API before any stubs ✿ ʕ •ᴥ•ʔ
+_G.ELVUI_NATIVE_AWESOME_NAMEPLATES = not not (
+	(C_NamePlate and type(C_NamePlate.GetNamePlateForUnit) == "function")
 	or (C_NamePlate and type(C_NamePlate.GetNamePlateByGUID) == "function")
+)
+_G.ELVUI_HAS_AWESOME_NAMEPLATES = _G.ELVUI_NATIVE_AWESOME_NAMEPLATES
+
+_G.ELVUI_AWESOMEWOTLK = not not (
+	_G.ELVUI_HAS_AWESOME_NAMEPLATES
+	or (type(CopyToClipboard) == "function")
+	or (type(FlashWindow) == "function")
 	or (C_VoiceChat and type(C_VoiceChat.SpeakText) == "function")
 )
 

@@ -114,7 +114,7 @@ end
 -- end block
 
 local function CastStart(self, event, unit)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 
 	local element = self.Castbar
 	local name, _, _, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(unit)
@@ -207,7 +207,7 @@ local function CastStart(self, event, unit)
 end
 
 local function CastUpdate(self, event, unit, _, _, castID)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 
 	local element = self.Castbar
 	if(not element:IsShown() or element.castID and element.castID ~= castID) then
@@ -260,7 +260,7 @@ local function CastUpdate(self, event, unit, _, _, castID)
 end
 
 local function CastStop(self, event, unit, _, _, castID)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 
 	local element = self.Castbar
 	if(not element:IsShown() or element.castID and element.castID ~= castID) then
@@ -289,7 +289,7 @@ local function CastStop(self, event, unit, _, _, castID)
 end
 
 local function CastFail(self, event, unit, _, _, castID)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 
 	local element = self.Castbar
 	if(not element:IsShown() or element.castID ~= castID) then
@@ -326,7 +326,7 @@ local function CastFail(self, event, unit, _, _, castID)
 end
 
 local function CastInterruptible(self, event, unit)
-	if(self.unit ~= unit) then return end
+	if(not unit or self.unit ~= unit) then return end
 
 	local element = self.Castbar
 	if(not element:IsShown()) then return end

@@ -13,7 +13,7 @@ local UnitPowerType = UnitPowerType
 local POWERTYPE_ALTERNATE = 10
 
 function NP:Power_UpdateColor(_, unit)
-	if self.unit ~= unit then return end
+	if not unit or self.unit ~= unit then return end
 
 	local element = self.Power
 	local ptype, ptoken, altR, altG, altB = UnitPowerType(unit)

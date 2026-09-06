@@ -113,17 +113,19 @@ function NP:ApplyMotionCVars()
 
 	-- ʕ •ᴥ•ʔ✿ Stock 3.3.5: nameplateAllowOverlap. AwesomeWotLK: nameplateStacking 0 = overlap ✿ ʕ •ᴥ•ʔ
 	ForceCVar('nameplateAllowOverlap', stacked and 0 or 1)
-	ForceCVar('nameplateStacking', stacked and 1 or 0)
-	ForceCVar('nameplateStackFriendly', stacked and 1 or 0)
-	ForceCVar('nameplateMotion', stacked and 1 or 0)
+	if E.AwesomeNameplates then
+		ForceCVar('nameplateStacking', stacked and 1 or 0)
+		ForceCVar('nameplateStackFriendly', stacked and 1 or 0)
+		ForceCVar('nameplateMotion', stacked and 1 or 0)
 
-	if stacked then
-		ForceCVar('nameplateBandX', overlapH)
-		ForceCVar('nameplateBandY', overlapV)
-		ForceCVar('nameplateXSpace', width * overlapH)
-		ForceCVar('nameplateYSpace', height * overlapV)
-		ForceCVar('nameplateOverlapH', overlapH)
-		ForceCVar('nameplateOverlapV', overlapV)
+		if stacked then
+			ForceCVar('nameplateBandX', overlapH)
+			ForceCVar('nameplateBandY', overlapV)
+			ForceCVar('nameplateXSpace', width * overlapH)
+			ForceCVar('nameplateYSpace', height * overlapV)
+			ForceCVar('nameplateOverlapH', overlapH)
+			ForceCVar('nameplateOverlapV', overlapV)
+		end
 	end
 
 	NP:ApplyAllPlateStacking()
@@ -300,14 +302,26 @@ function NP:UpdateTargetPlate(nameplate)
 	nameplate:UpdateAllElements('OnShow')
 end
 
+function NP:ApplyPlatePixelScale(nameplate, extra)
+	if not nameplate then return end
+	extra = extra or nameplate.__npExtraScale or 1
+	nameplate.__npExtraScale = extra
+	if E.AwesomeNameplates then
+		nameplate:SetScale(E.mult * extra)
+		return
+	end
+	-- ʕ •ᴥ•ʔ✿ Stock plates inherit WorldFrame/camera scale; extra SetScale shifts them off the unit ✿ ʕ •ᴥ•ʔ
+	nameplate:SetScale(extra)
+end
+
 function NP:ScalePlate(nameplate, scale, targetPlate)
 	if targetPlate and NP.targetPlate then
-		NP.targetPlate:SetScale(E.mult)
+		NP:ApplyPlatePixelScale(NP.targetPlate, 1)
 		NP.targetPlate = nil
 	end
 
 	if not nameplate then return end
-	nameplate:SetScale(scale * E.mult)
+	NP:ApplyPlatePixelScale(nameplate, scale)
 
 	if targetPlate then
 		NP.targetPlate = nameplate
@@ -326,7 +340,7 @@ function NP:PostUpdateAllElements(event)
 end
 
 function NP:StylePlate(nameplate)
-	nameplate:SetScale(E.mult)
+	NP:ApplyPlatePixelScale(nameplate)
 
 	nameplate.RaisedElement = NP:Construct_RaisedELement(nameplate)
 	nameplate.Health = NP:Construct_Health(nameplate)
@@ -371,8 +385,9 @@ function NP:UpdatePlate(nameplate, updateBase)
 	NP:Update_BossMods(nameplate)
 
 	local db = NP:PlateDB(nameplate)
-	if db.nameOnly or not db.enable then
-		NP:DisablePlate(nameplate, db.enable and db.nameOnly)
+	local nameOnly = NP:UsesNameOnlyLayout(nameplate, db)
+	if nameOnly or not db.enable then
+		NP:DisablePlate(nameplate, db.enable and nameOnly)
 
 		if not db.enable and nameplate.RaisedElement:IsShown() then
 			nameplate.RaisedElement:Hide()
@@ -634,6 +649,56 @@ function NP:UpdatePlateType(nameplate)
 	end
 end
 
+function NP:StockAnchorPlateFrame(nameplate)
+	local anchor = nameplate.nameplateAnchor
+	if not anchor or E.AwesomeNameplates then return end
+
+	local width = nameplate.width or NP.db.plateSize.width
+	local height = nameplate.height or NP.db.plateSize.height
+	local db = NP:PlateDB(nameplate)
+	local nameOnly = NP:UsesNameOnlyLayout(nameplate, db)
+	local hook = anchor
+
+	nameplate:ClearAllPoints()
+	nameplate:SetParent(hook)
+	if not nameOnly and anchor.HealthBar then
+		nameplate:SetPoint('BOTTOM', anchor.HealthBar, 'BOTTOM', 0, 0)
+		nameplate:SetFrameLevel((anchor.HealthBar.GetFrameLevel and anchor.HealthBar:GetFrameLevel() or 0) + 2)
+	else
+		nameplate:SetPoint('CENTER', hook, 'CENTER', 0, 0)
+	end
+	nameplate:Size(width, height)
+end
+
+function NP:SyncLegacyStockPlate(nameplate)
+	if not nameplate or E.AwesomeNameplates then return end
+
+	local anchor = nameplate.nameplateAnchor
+	if anchor and ElvUF.RefreshLegacyPlateName then
+		ElvUF:RefreshLegacyPlateName(anchor)
+		nameplate.unitName = anchor.__elvBlizzName or nameplate.unitName
+	end
+
+	NP:ApplyLegacyPlateData(nameplate)
+
+	local db = NP:PlateDB(nameplate)
+	if anchor and ElvUF.SuppressStockNameplateArt then
+		ElvUF:SuppressStockNameplateArt(anchor, not NP:UsesNameOnlyLayout(nameplate, db))
+	end
+
+	NP:UpdatePlateSize(nameplate)
+	if NP:UsesNameOnlyLayout(nameplate, db) and nameplate.Health then
+		nameplate.Health:Hide()
+	end
+
+	NP:UpdatePlateBase(nameplate)
+
+	if nameplate.RaisedElement and not nameplate.RaisedElement:IsShown() then
+		nameplate.RaisedElement:Show()
+	end
+	nameplate:Show()
+end
+
 function NP:UpdatePlateSize(nameplate)
 	local width, height = NP.db.plateSize.width, NP.db.plateSize.height
 	nameplate.width, nameplate.height = width, height
@@ -642,15 +707,19 @@ function NP:UpdatePlateSize(nameplate)
 	local anchor = nameplate.nameplateAnchor
 	if anchor then
 		nameplate:ClearAllPoints()
-		nameplate:SetAllPoints(anchor)
-		-- ʕ •ᴥ•ʔ✿ Only enlarge the native plate for stacking collision; overlap uses default size ✿ ʕ •ᴥ•ʔ
-		if NP.db.motionType == 'STACKED' then
-			SetNamePlateSize(width, height)
-			anchor:SetWidth(width)
-			anchor:SetHeight(height)
+		if E.AwesomeNameplates then
+			nameplate:SetAllPoints(anchor)
+			if NP.db.motionType == 'STACKED' then
+				SetNamePlateSize(width, height)
+				anchor:SetWidth(width)
+				anchor:SetHeight(height)
+			end
+		else
+			NP:StockAnchorPlateFrame(nameplate)
 		end
 	end
 
+	NP:ApplyPlatePixelScale(nameplate)
 	NP:ApplyPlateStacking(nameplate)
 end
 
@@ -660,6 +729,49 @@ function NP:UpdatePlateBase(nameplate)
 	NP:UpdatePlate(nameplate, update)
 	nameplate.StyleFilterBaseAlreadyUpdated = update
 	nameplate.previousType = nameplate.frameType
+end
+
+function NP:ApplyLegacyPlateData(nameplate)
+	local anchor = nameplate.nameplateAnchor
+	if anchor and ElvUF.SyncLegacyPlateName then
+		nameplate.unitName = ElvUF:SyncLegacyPlateName(anchor) or nameplate.unitName
+	end
+
+	nameplate.isMe, nameplate.isPet, nameplate.isPlayer = false, false, false
+	nameplate.isFriend, nameplate.isEnemy = false, true
+	nameplate.reaction, nameplate.repReaction = 2, 2
+	nameplate.classColor = NP.db.colors.reactions.bad
+
+	local hb = anchor and anchor.HealthBar
+	if hb and hb.GetStatusBarColor then
+		local r, g, b = hb:GetStatusBarColor()
+		if g > r and g > b then
+			nameplate.isEnemy, nameplate.isFriend = false, true
+			nameplate.reaction, nameplate.repReaction = 5, 5
+			nameplate.classColor = NP.db.colors.reactions.good
+		elseif r > 0.85 and g > 0.75 and b < 0.35 then
+			nameplate.isEnemy = false
+			nameplate.reaction, nameplate.repReaction = 4, 4
+			nameplate.classColor = NP.db.colors.reactions.neutral
+		end
+	elseif anchor then
+		local r, g, b = anchor.__elvBlizzNameR, anchor.__elvBlizzNameG, anchor.__elvBlizzNameB
+		if r and g and g > r and g > b then
+			nameplate.isEnemy, nameplate.isFriend = false, true
+			nameplate.reaction, nameplate.repReaction = 5, 5
+			nameplate.classColor = NP.db.colors.reactions.good
+		elseif r and g and r > 0.85 and g > 0.75 and b and b < 0.35 then
+			nameplate.isEnemy = false
+			nameplate.reaction, nameplate.repReaction = 4, 4
+			nameplate.classColor = NP.db.colors.reactions.neutral
+		elseif not hb then
+			nameplate.isEnemy, nameplate.isFriend = false, true
+			nameplate.reaction, nameplate.repReaction = 5, 5
+			nameplate.classColor = NP.db.colors.reactions.good
+		end
+	end
+
+	NP:UpdatePlateType(nameplate)
 end
 
 function NP:NamePlateCallBack(nameplate, event, unit)
@@ -685,6 +797,11 @@ function NP:NamePlateCallBack(nameplate, event, unit)
 		NP:SetupTarget(nameplate) -- pass it, even as nil here
 	elseif event == 'NAME_PLATE_UNIT_ADDED' then
 		if not unit then unit = nameplate.unit end
+
+		if not unit then
+			NP:SyncLegacyStockPlate(nameplate)
+			return
+		end
 
 		nameplate.classification = UnitClassification(unit)
 		nameplate.creatureType = UnitCreatureType(unit)
@@ -781,6 +898,17 @@ function NP:Initialize()
 	if E:IsAddOnEnabled("TurboPlates") then return end
 	if not E.private.nameplates.enable then return end
 	NP.Initialized = true
+
+	if not E.AwesomeNameplates then
+		if E.global.forceStockNameplates and _G.ELVUI_NATIVE_AWESOME_NAMEPLATES then
+			E:Print("Nameplates: forced stock mode (/eplates awesome to restore).")
+		else
+			E:Print(L["NAMEPLATE_NO_AWESOMEWOTLK"])
+			if not E.global.ignoreAwesomeWotLKNameplates then
+				E:StaticPopup_Show('NAMEPLATE_NO_AWESOMEWOTLK')
+			end
+		end
+	end
 
 	NP.thinBorders = NP.db.thinBorders
 	NP.SPACING = (NP.thinBorders or E.twoPixelsPlease) and 0 or 1

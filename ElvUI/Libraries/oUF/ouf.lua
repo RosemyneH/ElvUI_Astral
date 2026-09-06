@@ -311,7 +311,7 @@ local function togglemenu(self, unit)
 end
 
 local function onShow(self)
-	if self.isNamePlate then
+	if self.isNamePlate and self.unit and C_NamePlate.GetNamePlateForUnit then
 		local nameplate = C_NamePlate.GetNamePlateForUnit(self.unit)
 		if nameplate and C_NamePlateManager and C_NamePlateManager.IsNamePlateMoving and C_NamePlateManager.IsNamePlateMoving(nameplate.unitFrame) then return end
 	end
@@ -390,7 +390,7 @@ local function initObject(unit, style, styleFunc, header, ...)
 			object:SetAttribute('*type2', 'menu')
 
 			-- No need to enable this for *target frames.
-			if(not (unit:match('target') or suffix == 'target')) then
+			if(not (unit and unit:match('target') or suffix == 'target')) then
 				object:SetAttribute('toggleForVehicle', true)
 			end
 
@@ -398,7 +398,7 @@ local function initObject(unit, style, styleFunc, header, ...)
 			if(suffix == 'target') then
 				enableTargetUpdate(object)
 			else
-				oUF:HandleUnit(object)
+				oUF:HandleUnit(object, objectUnit)
 			end
 		else
 			-- update the frame when its prev unit is replaced with a new one
@@ -808,13 +808,279 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 		C_NamePlateManager.SetEnableResizeNamePlates(true)
 	end
 
-	local function SyncExistingNamePlates()
-		if type(C_NamePlate.GetNamePlateForUnit) ~= "function" then return end
-		for i = 1, 40 do
-			local token = "nameplate"..i
-			if C_NamePlate.GetNamePlateForUnit(token) then
-				eventHandler:GetScript("OnEvent")(eventHandler, "NAME_PLATE_UNIT_ADDED", token)
+	local hasAwesomeNP = _G.ELVUI_HAS_AWESOME_NAMEPLATES
+	local NAMEPLATE_BORDER = [[Interface\Tooltips\Nameplate-Border]]
+	local SyncBlizzHealth
+
+	local function AttachNamePlate(nameplate, unit)
+		if not nameplate then return end
+		if unit then
+			nameplateUnitToFrame[unit] = nameplate
+		end
+
+		if not nameplate.unitFrame then
+			pcall(self.DisableBlizzardNamePlate, self, nameplate)
+			nameplate.style = style
+			nameplate.isNamePlate = true
+
+			nameplate.unitFrame = CreateFrame('Button', prefix.."NamePlate"..nameplateCounter(), nameplate)
+			nameplate.unitFrame:EnableMouse(false)
+			nameplate.unitFrame.isNamePlate = true
+			nameplate.unitFrame.nameplateAnchor = nameplate
+			nameplate.unitFrame:Show()
+
+			walkObject(nameplate.unitFrame, unit or 'nameplate1')
+			Private.UpdateUnits(nameplate.unitFrame, unit)
+			if C_NamePlateManager and C_NamePlateManager.ApplyFPSIncrease then
+				C_NamePlateManager.ApplyFPSIncrease(nameplate.unitFrame)
 			end
+		else
+			Private.UpdateUnits(nameplate.unitFrame, unit)
+		end
+
+		nameplate.unitFrame:SetAttribute('unit', unit)
+
+		if nameplateCallback then
+			nameplateCallback(nameplate.unitFrame, 'NAME_PLATE_UNIT_ADDED', unit)
+		end
+
+		if hasAwesomeNP then
+			nameplate.unitFrame:ClearAllPoints()
+			nameplate.unitFrame:SetAllPoints(nameplate)
+		end
+
+		if unit then
+			if nameplate.unitFrame.Health then nameplate.unitFrame.Health:SetAlpha(1) end
+			nameplate.unitFrame:UpdateAllElements('NAME_PLATE_UNIT_ADDED')
+		end
+	end
+
+	local function DetachNamePlate(nameplate, unit)
+		if not nameplate or not nameplate.unitFrame then return end
+		unit = unit or nameplate.unitFrame.unit
+		if unit then
+			nameplateUnitToFrame[unit] = nil
+		end
+		nameplate.unitFrame:SetAttribute('unit', nil)
+		if nameplateCallback then
+			nameplateCallback(nameplate.unitFrame, 'NAME_PLATE_UNIT_REMOVED', unit)
+		end
+	end
+
+	local function IsBlizzardNamePlate(frame)
+		if not frame then return end
+		if frame.IsForbidden and frame:IsForbidden() then return end
+		if frame.isNamePlate or (frame.unitFrame and frame.unitFrame.isNamePlate) then return true end
+		local name = frame.GetName and frame:GetName()
+		if name and name:match('^NamePlate%d+$') then return true end
+		local overlay = select(2, frame:GetRegions())
+		if overlay and overlay.GetTexture and overlay:GetTexture() == NAMEPLATE_BORDER then return true end
+		if frame.__elvBlizzDisabled then return true end
+
+		for i = 1, select('#', frame:GetChildren()) do
+			local child = select(i, frame:GetChildren())
+			if child and child.GetStatusBarTexture then return true end
+		end
+
+		local w, h = frame:GetWidth(), frame:GetHeight()
+		if w and w > 300 then return end
+		if h and h > 80 then return end
+
+		local hasName, hasBar
+		for i = 1, select('#', frame:GetRegions()) do
+			local region = select(i, frame:GetRegions())
+			if region and region.GetText then
+				local text = region:GetText()
+				if text and text ~= '' then hasName = true end
+			end
+		end
+		for i = 1, select('#', frame:GetChildren()) do
+			local child = select(i, frame:GetChildren())
+			if child and child.GetStatusBarTexture then hasBar = true end
+		end
+		if hasName and not hasBar then return true end
+	end
+
+	local function SyncLegacyPlate(unitFrame)
+		local NP = _G.ElvUI and _G.ElvUI[1] and _G.ElvUI[1].NamePlates
+		if NP then
+			local db = NP:PlateDB(unitFrame)
+			if NP:UsesNameOnlyLayout(unitFrame, db) and NP.SyncLegacyStockPlate then
+				NP:SyncLegacyStockPlate(unitFrame)
+				return
+			end
+		end
+		SyncBlizzHealth(unitFrame)
+	end
+
+	local function LegacySuppress(frame, unitFrame)
+		local NP = _G.ElvUI and _G.ElvUI[1] and _G.ElvUI[1].NamePlates
+		local keepHealth = true
+		if NP and unitFrame then
+			keepHealth = not NP:UsesNameOnlyLayout(unitFrame, NP:PlateDB(unitFrame))
+		end
+		oUF:SuppressStockNameplateArt(frame, keepHealth)
+	end
+
+	local function ResolvePlateUnit(plate)
+		oUF:RefreshLegacyPlateName(plate)
+		local highlight = plate.blizzHighlight or select(3, plate:GetRegions())
+		local plateName = plate.__elvBlizzName
+
+		if highlight and highlight.IsShown and highlight:IsShown() and UnitExists('target') then
+			return 'target'
+		end
+		if plateName then
+			if UnitExists('mouseover') and UnitName('mouseover') == plateName then
+				return 'mouseover'
+			end
+			if UnitExists('focus') and UnitName('focus') == plateName then
+				return 'focus'
+			end
+			local raid = GetNumRaidMembers and GetNumRaidMembers() or 0
+			if raid > 0 then
+				for i = 1, raid do
+					local token = 'raid'..i
+					if UnitName(token) == plateName then return token end
+				end
+			else
+				local party = GetNumPartyMembers and GetNumPartyMembers() or 0
+				for i = 1, party do
+					local token = 'party'..i
+					if UnitName(token) == plateName then return token end
+				end
+			end
+		end
+	end
+
+	SyncBlizzHealth = function(unitFrame)
+		local plate = unitFrame and unitFrame.nameplateAnchor
+		local hb = plate and plate.HealthBar
+		local health = unitFrame and unitFrame.Health
+		local NP = _G.ElvUI and _G.ElvUI[1] and _G.ElvUI[1].NamePlates
+
+		if NP then
+			local db = NP:PlateDB(unitFrame)
+			if NP:UsesNameOnlyLayout(unitFrame, db) then
+				NP:SyncLegacyStockPlate(unitFrame)
+				return
+			end
+		end
+
+		if not health or not health.SetValue then return end
+
+		if plate then
+			oUF:RefreshLegacyPlateName(plate)
+			unitFrame.unitName = plate.__elvBlizzName or unitFrame.unitName
+			oUF:SuppressStockNameplateArt(plate)
+		end
+
+		local mn, mx, val, r, g, b
+		if hb and hb.GetMinMaxValues then
+			mn, mx = hb:GetMinMaxValues()
+			val = hb:GetValue()
+			r, g, b = hb:GetStatusBarColor()
+		end
+		if (not mx or mx == 0) and plate then
+			mn, mx = plate.__hpMin or 0, plate.__hpMax or 1
+			val = plate.__hpVal or mx
+			r, g, b = plate.__hpR, plate.__hpG, plate.__hpB
+		end
+		if not mx or mx == 0 then
+			mn, mx, val = 0, 1, 1
+		end
+		health:SetMinMaxValues(mn, mx)
+		health:SetValue(val or mx)
+		if unitFrame.classColor then
+			health:SetStatusBarColor(unitFrame.classColor.r, unitFrame.classColor.g, unitFrame.classColor.b)
+			if health.bg then
+				local m = NP and NP.multiplier or 0.35
+				health.bg:SetVertexColor(unitFrame.classColor.r * m, unitFrame.classColor.g * m, unitFrame.classColor.b * m)
+			end
+		elseif (r and r > 0) or (g and g > 0) or (b and b > 0) then
+			health:SetStatusBarColor(r, g, b)
+		else
+			health:SetStatusBarColor(0.8, 0.2, 0.2)
+		end
+		-- ʕ •ᴥ•ʔ✿ Keep the native bar frame at alpha 1 so a child overlay stays visible ✿ ʕ •ᴥ•ʔ
+		if hb then
+			hb:SetAlpha(1)
+			local ntex = hb.GetStatusBarTexture and hb:GetStatusBarTexture()
+			if ntex and ntex.SetAlpha then ntex:SetAlpha(0) end
+			local etex = health.GetStatusBarTexture and health:GetStatusBarTexture()
+			local path = etex and etex.GetTexture and etex:GetTexture()
+			if path then hb:SetStatusBarTexture(path) end
+			health:SetAlpha(1)
+			health:Show()
+		else
+			health:SetAlpha(1)
+			health:Show()
+		end
+		if NP and NP.EvalLegacyTag and health.Text then
+			local db = NP:PlateDB(unitFrame)
+			local hide = NP.UsesNameOnlyLayout and NP:UsesNameOnlyLayout(unitFrame, db)
+			if db.health and db.health.text and db.health.text.enable and not hide then
+				health.Text:SetText(NP:EvalLegacyTag(unitFrame, db.health.text.format))
+			end
+		end
+	end
+
+	local function RefreshPlateScale(unitFrame)
+		local NP = _G.ElvUI and _G.ElvUI[1] and _G.ElvUI[1].NamePlates
+		if NP and NP.ApplyPlatePixelScale then
+			NP:ApplyPlatePixelScale(unitFrame)
+		end
+	end
+
+	local function LegacyScan()
+		local children = {WorldFrame:GetChildren()}
+		for i = 1, #children do
+			local frame = children[i]
+			if IsBlizzardNamePlate(frame) then
+				if frame:IsShown() then
+					local unit = ResolvePlateUnit(frame)
+					if not frame.unitFrame then
+						AttachNamePlate(frame, unit)
+					else
+						LegacySuppress(frame, frame.unitFrame)
+						RefreshPlateScale(frame.unitFrame)
+						if unit ~= frame.unitFrame.unit then
+							if frame.unitFrame.unit then
+								nameplateUnitToFrame[frame.unitFrame.unit] = nil
+							end
+							Private.UpdateUnits(frame.unitFrame, unit)
+							frame.unitFrame:SetAttribute('unit', unit)
+							if nameplateCallback then
+								nameplateCallback(frame.unitFrame, 'NAME_PLATE_UNIT_ADDED', unit)
+							end
+							if unit then
+								if frame.unitFrame.Health then frame.unitFrame.Health:SetAlpha(1) end
+								frame.unitFrame:UpdateAllElements('NAME_PLATE_UNIT_ADDED')
+							else
+								SyncLegacyPlate(frame.unitFrame)
+							end
+						elseif not unit then
+							SyncLegacyPlate(frame.unitFrame)
+						end
+					end
+				elseif frame.unitFrame and frame.unitFrame.unit then
+					DetachNamePlate(frame, frame.unitFrame.unit)
+				end
+			end
+		end
+	end
+
+	local function SyncExistingNamePlates()
+		if hasAwesomeNP then
+			if type(C_NamePlate.GetNamePlateForUnit) ~= "function" then return end
+			for i = 1, 40 do
+				local token = "nameplate"..i
+				if C_NamePlate.GetNamePlateForUnit(token) then
+					eventHandler:GetScript("OnEvent")(eventHandler, "NAME_PLATE_UNIT_ADDED", token)
+				end
+			end
+		else
+			LegacyScan()
 		end
 	end
 
@@ -829,18 +1095,19 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 		elseif(event == 'PLAYER_ENTERING_WORLD') then
 			SyncExistingNamePlates()
 		elseif(event == 'PLAYER_TARGET_CHANGED') then
-			local nameplate = C_NamePlate.GetNamePlateForUnit('target')
-			if(nameplateCallback) then
-				nameplateCallback(nameplate and nameplate.unitFrame, event, 'target')
-			end
-
-			-- UAE is called after the callback to reduce the number of
-			-- ForceUpdate calls layout devs have to do themselves
-			if(nameplate) then
-				nameplate.unitFrame:UpdateAllElements(event)
+			if hasAwesomeNP then
+				local nameplate = C_NamePlate.GetNamePlateForUnit('target')
+				if(nameplateCallback) then
+					nameplateCallback(nameplate and nameplate.unitFrame, event, 'target')
+				end
+				if(nameplate) then
+					nameplate.unitFrame:UpdateAllElements(event)
+				end
+			else
+				LegacyScan()
 			end
 		elseif(event == 'UNIT_FACTION' and unit) then
-			local nameplate = C_NamePlate.GetNamePlateForUnit(unit)
+			local nameplate = hasAwesomeNP and C_NamePlate.GetNamePlateForUnit(unit)
 			if(not nameplate) then return end
 
 			if(nameplateCallback) then
@@ -848,53 +1115,27 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 			end
 		elseif(event == 'NAME_PLATE_UNIT_ADDED' and unit) then
 			local nameplate = C_NamePlate.GetNamePlateForUnit(unit)
-			if(not nameplate) then return end
-			nameplateUnitToFrame[unit] = nameplate
-
-			if(not nameplate.unitFrame) then
-				pcall(self.DisableBlizzardNamePlate, self, nameplate)
-				nameplate.style = style
-				nameplate.isNamePlate = true
-
-				nameplate.unitFrame = CreateFrame('Button', prefix.."NamePlate"..nameplateCounter(), nameplate)
-				nameplate.unitFrame:EnableMouse(false)
-				nameplate.unitFrame.isNamePlate = true
-				nameplate.unitFrame.nameplateAnchor = nameplate
-				nameplate.unitFrame:ClearAllPoints()
-				nameplate.unitFrame:SetAllPoints(nameplate)
-				nameplate.unitFrame:Show()
-
-				Private.UpdateUnits(nameplate.unitFrame, unit)
-				walkObject(nameplate.unitFrame, unit)
-				if C_NamePlateManager and C_NamePlateManager.ApplyFPSIncrease then
-					C_NamePlateManager.ApplyFPSIncrease(nameplate.unitFrame)
-				end
-			else
-				-- for _, child in ipairs(nameplate.blizzElements) do
-				-- 	ClearNamePlateElement(child)
-				-- end
-				Private.UpdateUnits(nameplate.unitFrame, unit)
-			end
-
-			nameplate.unitFrame:SetAttribute('unit', unit)
-
-			if(nameplateCallback) then
-				nameplateCallback(nameplate.unitFrame, event, unit)
-			end
-
-			-- UAE is called after the callback to reduce the number of
-			-- ForceUpdate calls layout devs have to do themselves
-			nameplate.unitFrame:UpdateAllElements(event)
+			AttachNamePlate(nameplate, unit)
 		elseif(event == 'NAME_PLATE_UNIT_REMOVED' and unit) then
 			local nameplate = nameplateUnitToFrame[unit]
-			if(not nameplate) then return end
-			nameplateUnitToFrame[unit] = nil
-			nameplate.unitFrame:SetAttribute('unit', nil)
-			if(nameplateCallback) then
-				nameplateCallback(nameplate.unitFrame, event, unit)
-			end
+			DetachNamePlate(nameplate, unit)
 		end
 	end)
+
+	if not hasAwesomeNP then
+		local throttle = 0
+		local function OnWorldUpdate(_, elapsed)
+			throttle = throttle + elapsed
+			if throttle < 0.1 then return end
+			throttle = 0
+			LegacyScan()
+		end
+		if WorldFrame:GetScript('OnUpdate') then
+			WorldFrame:HookScript('OnUpdate', OnWorldUpdate)
+		else
+			WorldFrame:SetScript('OnUpdate', OnWorldUpdate)
+		end
+	end
 
 	if(IsLoggedIn()) then
 		SyncExistingNamePlates()

@@ -1194,6 +1194,7 @@ function E:Initialize()
 	self.private = self.charSettings.profile
 	self.db = self.data.profile
 	self.global = self.data.global
+	self:ApplyAwesomeNameplateMode()
 	self:InitializeGMIcon()
 
 	self:CheckIncompatible()
