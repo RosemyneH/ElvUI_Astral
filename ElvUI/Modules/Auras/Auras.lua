@@ -376,7 +376,7 @@ function A:ConfigureAuras(header, auraTable, weaponPosition)
 				expiring = exitTime < GetTime()
 			end
 
-			local isVanity = C_VanityCollection.IsConsolidatedVanityBuff(buffInfo.spellID) or (buffInfo.name and string.find(buffInfo.name, "Keeper's Scroll", 1, true)) or (buffInfo.spellID and ((buffInfo.spellID >= 91700 and buffInfo.spellID <= 91899) or (buffInfo.spellID >= 993900 and buffInfo.spellID <= 993999)))
+			local isVanity = (C_VanityCollection and C_VanityCollection.IsConsolidatedVanityBuff and C_VanityCollection.IsConsolidatedVanityBuff(buffInfo.spellID)) or (buffInfo.name and string.find(buffInfo.name, "Keeper's Scroll", 1, true)) or (buffInfo.spellID and ((buffInfo.spellID >= 91700 and buffInfo.spellID <= 91899) or (buffInfo.spellID >= 993900 and buffInfo.spellID <= 993999)))
 			if E.db.auras.mergeVanity and isVanity then
 				button:SetParent(ElvuiVanityBuffsTooltip)
 				button:Show()
