@@ -60,7 +60,10 @@ E.myname = UnitName("player")
 E.myrealm = GetRealmName()
 E.mynameRealm = format('%s - %s', E.myname, E.myrealm) -- contains spaces/dashes in realm (for profile keys)
 E.version = GetAddOnMetadata("ElvUI", "Version")
-E.versionNum = tonumber(E.version)
+do
+	local major, minor = match(E.version or "", "^(%d+)%.(%d+)")
+	E.versionNum = (major and (tonumber(major) + (tonumber(minor) or 0) / 100)) or tonumber(E.version) or 0
+end
 E.wowpatch, E.wowbuild = GetBuildInfo()
 E.wowbuild = tonumber(E.wowbuild)
 E.resolution = GetCVar("gxResolution")
@@ -1116,9 +1119,9 @@ function E:DBConversions()
 		E.private.skins.blizzard.greeting = nil
 	end
 
-	-- VERSION 7.0 -- nameplate overhaul
-	if not E.db.version or E.db.version < 7 then
-		-- wipe nameplates
+	-- VERSION 7.0 -- nameplate overhaul (only migrate real pre-7 profiles)
+	local dbVer = tonumber(E.db.version)
+	if dbVer and dbVer > 0 and dbVer < 7 then
 		E:CopyTable(self.db.nameplates, P.nameplates)
 	end
 
