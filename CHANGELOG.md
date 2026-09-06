@@ -4,6 +4,16 @@ All notable changes to Astral are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
+## [7.29.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.29.0) (2026-09-05)
+
+### Features
+
+* Use AwesomeWotLK `C_NamePlate` when the client patch is present, and attach plates already on screen
+
+### Fixes
+
+* Buff frames no longer error when `C_VanityCollection` is missing
+
 ## [7.28.0](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.28.0) (2026-09-05)
 
 ### Features
