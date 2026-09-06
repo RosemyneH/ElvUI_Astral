@@ -154,6 +154,7 @@ V.astral = {
 	microButton = true,
 	hub = true,
 	transmog = true,
+	table = true,
 	minimapButton = true,
 	popups = true,
 }

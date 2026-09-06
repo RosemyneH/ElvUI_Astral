@@ -112,7 +112,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 		return astral[key] ~= false
 	end
 
-	if not (AstralOn("hub") or AstralOn("transmog") or AstralOn("minimapButton") or AstralOn("popups")) then
+	if not (AstralOn("hub") or AstralOn("transmog") or AstralOn("table") or AstralOn("minimapButton") or AstralOn("popups")) then
 		return
 	end
 
@@ -120,7 +120,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	if not PA or not PA.UI then return end
 	local UI = PA.UI
 
-	if AstralOn("hub") or AstralOn("transmog") or AstralOn("popups") then
+	if AstralOn("hub") or AstralOn("transmog") or AstralOn("table") or AstralOn("popups") then
 	UI.Color = MediaColor()
 	UI.CosmicCorners = E.noop
 	UI.AddStarfield = E.noop
@@ -1363,6 +1363,111 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	end
 	SkinTransmogrificationFrame()
 
+	end
+
+	if AstralOn("table") then
+		-- ʕ •ᴥ•ʔ✿ Astral Table (lazy-built) + stash depositall ✿ ʕ •ᴥ•ʔ
+		local function SkinAstralTable(frame)
+			if not frame or frame.__elvPATableSkinned then return end
+
+			if frame.StripTextures then frame:StripTextures() end
+			LockTemplate(frame, "Transparent")
+
+			if frame.TitleText then
+				ApplyFont(frame.TitleText, 16)
+			end
+
+			for _, region in ipairs({ frame:GetRegions() }) do
+				if region.GetObjectType and region:GetObjectType() == "FontString" then
+					ApplyFont(region, region:GetStringHeight() > 18 and 16 or 11)
+					if region:GetText() == "The Astral Table" then
+						region:SetTextColor(1, 1, 1)
+					else
+						region:SetTextColor(0.7, 0.7, 0.7)
+					end
+				end
+			end
+
+			for _, child in ipairs({ frame:GetChildren() }) do
+				if child.GetObjectType and child:GetObjectType() == "Button" and child:GetFrameStrata() then
+					local fs = child.GetFontString and child:GetFontString()
+					local label = fs and fs:GetText()
+					if child:GetWidth() > 40 and label and not child.isSkinned then
+						S:HandleButton(child, true)
+					end
+				end
+			end
+
+			for i = 1, 9 do
+				local slot = _G["PAAstralDisenchantSlot"..i]
+				if slot and not slot.__elvPASkinned then
+					slot:SetTemplate("Default")
+					if slot.icon then
+						slot.icon:SetTexCoord(unpack(E.TexCoords))
+						slot.icon:SetInside()
+					end
+					slot.__elvPASkinned = true
+				end
+			end
+
+			local function SkinPopup(pop)
+				if not pop or pop.__elvPASkinned then return end
+				if pop.StripTextures then pop:StripTextures() end
+				LockTemplate(pop, "Transparent")
+				for _, region in ipairs({ pop:GetRegions() }) do
+					if region.GetObjectType and region:GetObjectType() == "FontString" then
+						ApplyFont(region, 12)
+					end
+				end
+				for _, child in ipairs({ pop:GetChildren() }) do
+					if child.IsObjectType and child:IsObjectType("CheckButton") and not child.isSkinned then
+						S:HandleCheckBox(child)
+					end
+				end
+				pop.__elvPASkinned = true
+			end
+
+			SkinPopup(frame.tierPopup)
+			SkinPopup(frame.filterPopup)
+
+			if not frame.elvPADepositGems then
+				frame:SetHeight((frame:GetHeight() or 470) + 40)
+				local btn = CreateFrame("Button", nil, frame)
+				S:HandleButton(btn, true)
+				ApplyHover(btn)
+				btn:SetSize(268, 26)
+				btn:SetPoint("BOTTOM", frame, "BOTTOM", 0, 14)
+				local txt = btn:CreateFontString(nil, "OVERLAY")
+				ApplyFont(txt, 12)
+				txt:SetPoint("CENTER")
+				txt:SetText("Deposit All Gems")
+				btn:SetFontString(txt)
+				btn:SetScript("OnClick", function()
+					SendChatMessage(".astralstash depositall", "SAY")
+					if PA.GemStash and PA.GemStash.DelayedRequestState then
+						PA.GemStash.DelayedRequestState(400)
+					end
+				end)
+				btn:HookScript("OnEnter", function(self)
+					GameTooltip:SetOwner(self, "ANCHOR_TOP")
+					GameTooltip:SetText("Deposit All Gems")
+					GameTooltip:AddLine("Sends all Astral gems and scrolls in your bags to the Gem Stash.", 1, 1, 1, true)
+					GameTooltip:Show()
+				end)
+				btn:HookScript("OnLeave", GameTooltip_Hide)
+				frame.elvPADepositGems = btn
+			end
+
+			frame.__elvPATableSkinned = true
+		end
+
+		local wait = CreateFrame("Frame")
+		wait:SetScript("OnUpdate", function(self)
+			local frame = _G.ProjectAstralAstralDisenchant
+			if not frame then return end
+			SkinAstralTable(frame)
+			self:SetScript("OnUpdate", nil)
+		end)
 	end
 
 	if AstralOn("hub") and _G.PAMainMenuFrame then

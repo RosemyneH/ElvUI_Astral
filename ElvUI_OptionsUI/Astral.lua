@@ -79,6 +79,13 @@ E.Options.args.astral = {
 			desc = L["TOGGLESKIN_DESC"],
 			disabled = astralProjectDisabled,
 		},
+		table = {
+			order = 13.5,
+			type = "toggle",
+			name = L["Astral Table Skin"],
+			desc = L["TOGGLESKIN_DESC"],
+			disabled = astralProjectDisabled,
+		},
 		minimapButton = {
 			order = 14,
 			type = "toggle",
