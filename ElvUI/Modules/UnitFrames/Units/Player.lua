@@ -31,11 +31,13 @@ function UF:Construct_PlayerFrame(frame)
 	frame.ClassBarHolder = CreateFrame("Frame", nil, frame)
 	frame.ClassBarHolder:Point("BOTTOM", E.UIParent, "BOTTOM", 0, 150)
 
-	frame.AdditionalPower = self:Construct_AdditionalPowerBar(frame, nil, UF.UpdateClassBar)
-	frame.ClassBar = "AdditionalPower"
-
-	--frame.Runes = self:Construct_DeathKnightResourceBar(frame)
-	--frame.ClassBar = "Runes"
+	if E.myclass == "DEATHKNIGHT" then
+		frame.Runes = self:Construct_DeathKnightResourceBar(frame)
+		frame.ClassBar = "Runes"
+	else
+		frame.AdditionalPower = self:Construct_AdditionalPowerBar(frame, nil, UF.UpdateClassBar)
+		frame.ClassBar = "AdditionalPower"
+	end
 
 	frame.MouseGlow = self:Construct_MouseGlow(frame)
 	frame.TargetGlow = self:Construct_TargetGlow(frame)

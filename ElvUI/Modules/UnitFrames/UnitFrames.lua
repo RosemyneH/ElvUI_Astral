@@ -47,6 +47,7 @@ UF.badHeaderPoints = {
 UF.headerFunctions = {}
 UF.classMaxResourceBar = {
 	["DRUID"] = 1,
+	["DEATHKNIGHT"] = 6,
 	["HERO"] = 1
 }
 

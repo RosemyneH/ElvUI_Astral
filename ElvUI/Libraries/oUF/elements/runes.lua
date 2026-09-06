@@ -69,6 +69,8 @@ local function UpdateType(self, event, runeID, alt)
 
 	if not runeType then return end
 
+	rune.runeType = runeType
+
 	local color = self.colors.runes[runeType]
 	local r, g, b = color[1], color[2], color[3]
 
@@ -147,7 +149,7 @@ local function Path(self, event, ...)
 		--]]
 		local UpdateTypeMethod = element.UpdateType or UpdateType
 		for index = 1, #element do
-			UpdateTypeMethod(self, element, index)
+			UpdateTypeMethod(self, event, index)
 			UpdateMethod(self, event, index)
 		end
 	end
@@ -230,20 +232,20 @@ local function Enable(self, unit)
 		self:RegisterEvent('RUNE_TYPE_UPDATE', UpdateType, true)
 		self:RegisterEvent('PLAYER_ENTERING_WORLD', Path)
 
-		-- oUF leaves the vehicle events registered on the player frame, so
-		-- buffs and such are correctly updated when entering/exiting vehicles.
-		--
-		-- This however makes the code also show/hide the RuneFrame.
-		RuneFrame.Show = RuneFrame.Hide
-		RuneFrame:Hide()
+		if RuneFrame then
+			RuneFrame.Show = RuneFrame.Hide
+			RuneFrame:Hide()
+		end
 
 		return true
 	end
 end
 
 local function Disable(self)
-	RuneFrame.Show = nil
-	RuneFrame:Show()
+	if RuneFrame then
+		RuneFrame.Show = nil
+		RuneFrame:Show()
+	end
 
 	local element = self.Runes
 	if(element) then
