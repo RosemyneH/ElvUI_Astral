@@ -5,6 +5,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.36](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.36) (2026-09-06)
+
+### Features
+
+* Stock 3.3.5 nameplates hide native HP/cast art so ElvUI bars are not doubled
+* Nameplate spawn and size wait until combat ends
+* Friend/enemy plate visibility CVars are stored and restored across reload
+
+### Fixes
+
+* CreateFrame is no longer wrapped, so `/castsequence` is not tainted
+* Chat no longer hooks `ChatEdit_SendText`, so `/cast` is not tainted
+* Action buttons skip LAB OnClick wrapping that taints `UseAction`
+* Unit-frame overlays are click-through so LeftClick reaches the secure unit button
+* Raid/party headers skip leftover mouse-catcher children
+* Unused 2D/3D portraits are hidden
+* Tags and bar smoothing return early when the unit is missing
+
 ## [7.35](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.35) (2026-09-06)
 
 ### Features
