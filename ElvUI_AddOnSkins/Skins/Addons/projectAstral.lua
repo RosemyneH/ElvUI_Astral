@@ -524,14 +524,22 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 		searchTop = -52,
 		gridTop = -78,
 		cardW = 82,
-		cardH = 112,
+		cardH = 100,
 		cardGap = 6,
+		cols = 6,
+		rows = 3,
+		cardCount = 18,
+		serverPageSize = 6,
 		modelTop = -52,
 		modelBottomPad = 68,
 		modelPad = 36,
 		hoverRotRange = 0.25,
 		searchHeight = 24,
 	}
+
+	local function TransmogGridWidth()
+		return transmogLayout.cols * transmogLayout.cardW + (transmogLayout.cols - 1) * transmogLayout.cardGap
+	end
 
 	local function StyleTransmogOptionLabel(fs)
 		if not fs then return end
@@ -618,7 +626,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 
 		SkinTransmogSearchInput(search)
 
-		local cardWidth = gridWidth or (6 * transmogLayout.cardW + 5 * transmogLayout.cardGap)
+		local cardWidth = gridWidth or TransmogGridWidth()
 		search:ClearAllPoints()
 		search:SetSize(cardWidth, transmogLayout.searchHeight)
 		search:SetPoint("TOPLEFT", frame, "TOPLEFT", transmogLayout.gridLeft, transmogLayout.searchTop)
@@ -843,7 +851,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	end
 
 	local function RefreshAllTransmogCardPreviews()
-		for i = 1, 6 do
+		for i = 1, transmogLayout.cardCount do
 			RefreshTransmogCardPreview(i, hoveredCardIndex == i)
 		end
 	end
@@ -857,7 +865,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 
 	local function ClearAllTransmogCardHovers()
 		hoveredCardIndex = nil
-		for i = 1, 6 do
+		for i = 1, transmogLayout.cardCount do
 			local model = _G["ItemModel"..i]
 			if model then model:SetScript("OnUpdate", nil) end
 		end
@@ -923,11 +931,15 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 		local child = _G["ItemChild"..index]
 		if not frame or not child then return end
 
-		local x = transmogLayout.gridLeft + (slot - 1) * (transmogLayout.cardW + transmogLayout.cardGap)
+		local col = (slot - 1) % transmogLayout.cols
+		local row = math.floor((slot - 1) / transmogLayout.cols)
+		local x = transmogLayout.gridLeft + col * (transmogLayout.cardW + transmogLayout.cardGap)
+		local y = transmogLayout.gridTop - row * (transmogLayout.cardH + transmogLayout.cardGap)
 
+		child:SetParent(frame)
 		child:ClearAllPoints()
 		child:SetSize(transmogLayout.cardW, transmogLayout.cardH)
-		child:SetPoint("TOPLEFT", frame, "TOPLEFT", x, transmogLayout.gridTop)
+		child:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
 		child.__elvPAIndex = index
 		if child.SetClipsChildren then child:SetClipsChildren(true) end
 
@@ -957,8 +969,9 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 		if not frame then return end
 
 		local order = {}
-		for i = 1, 6 do
+		for i = 1, transmogLayout.cardCount do
 			local child = _G["ItemChild"..i]
+			if child then child:SetParent(frame) end
 			local itemID = child and child:GetID()
 			if itemID and itemID > 0 then
 				order[#order + 1] = i
@@ -969,11 +982,8 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 			end
 		end
 
-		local count = #order
-		local gridWidth = count > 0 and (count * transmogLayout.cardW + (count - 1) * transmogLayout.cardGap) or transmogLayout.cardW
-
 		if _G.ItemSearchInput then
-			LayoutItemSearchInput(frame, gridWidth)
+			LayoutItemSearchInput(frame)
 		end
 
 		for slot, index in ipairs(order) do
@@ -983,7 +993,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 
 	local function ReconcileTransmogCards()
 		SyncActiveTransmogSlotFromUI()
-		for i = 1, 6 do
+		for i = 1, transmogLayout.cardCount do
 			HideTransmogPreviewBackgrounds(i)
 			local child = _G["ItemChild"..i]
 			local button = _G["ItemButton"..i]
@@ -999,7 +1009,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	end
 
 	local function ApplyTransmogCardIdleState()
-		for i = 1, 6 do
+		for i = 1, transmogLayout.cardCount do
 			local child = _G["ItemChild"..i]
 			local button = _G["ItemButton"..i]
 			if child and child.modelBG then child.modelBG:Hide() end
@@ -1118,7 +1128,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 
 		if _G.TransmogPaginationText then
 			_G.TransmogPaginationText:ClearAllPoints()
-			_G.TransmogPaginationText:SetPoint("BOTTOM", frame, "BOTTOM", 96, 34)
+			_G.TransmogPaginationText:SetPoint("BOTTOM", frame, "BOTTOM", transmogLayout.gridLeft + TransmogGridWidth() * 0.5 - transmogLayout.width * 0.5, 16)
 		end
 		if _G.LeftButton then
 			_G.LeftButton:ClearAllPoints()
@@ -1131,7 +1141,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 
 		if _G.SaveButton then
 			_G.SaveButton:ClearAllPoints()
-			_G.SaveButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 30)
+			_G.SaveButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -16, 12)
 		end
 	end
 
@@ -1223,6 +1233,176 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 		child.__elvPASkinned = true
 	end
 
+	local function EnsureTransmogAppearanceCards()
+		local frame = _G.TransmogrificationFrame
+		if not frame then return end
+
+		for i = 1, transmogLayout.cardCount do
+			if not _G["ItemChild"..i] then
+				local child = CreateFrame("Frame", "ItemChild"..i, frame, "TransmogItemWrapperTemplate")
+				child:Hide()
+
+				local model = CreateFrame("DressUpModel", "ItemModel"..i, child)
+				model:SetPoint("CENTER", 0, 0)
+				model:SetSize(transmogLayout.cardW, transmogLayout.cardH)
+				model:Hide()
+
+				local button = CreateFrame("Button", "ItemButton"..i, child, "TransmogItemButtonTemplate")
+				button:SetPoint("CENTER", child, "CENTER", 0, 0)
+				button:SetScript("OnClick", _G.OnClickItemTransmogrificationButton)
+				button:SetScript("OnEnter", _G.OnEnterItemToolTip)
+				button:SetScript("OnLeave", _G.OnLeaveHideToolTip)
+				button:RegisterForClicks("AnyUp")
+				button:Disable()
+
+				child.itemModel = model
+				child.itemButton = button
+			end
+			SkinTransmogItemChild(_G["ItemChild"..i], i)
+		end
+	end
+
+	local function ActiveSlotHasItem()
+		local name = GetActiveTransmogSlotName()
+		local slot = name and _G["TransmogCharacter"..name.."Slot"]
+		local id = slot and slot:GetID()
+		return id and GetInventoryItemID("player", id) ~= nil
+	end
+
+	local function ApplyAppearanceToCard(index, itemID, hasItem)
+		local child = _G["ItemChild"..index]
+		local button = _G["ItemButton"..index]
+		local model = _G["ItemModel"..index]
+		if not child then return end
+
+		if not itemID or itemID <= 0 then
+			child:SetID(0)
+			if button then
+				button:SetID(0)
+				button:Disable()
+			end
+			if model then model:Hide() end
+			child:Hide()
+			return
+		end
+
+		child:SetID(itemID)
+		if button then
+			button:SetID(itemID)
+			SetItemButtonTexture(button, GetItemIcon(itemID))
+			button:Enable()
+			if hasItem then
+				button:SetScript("OnClick", _G.OnClickItemTransmogrificationButton)
+			else
+				button:SetScript("OnClick", function()
+					PlaySound("igMainMenuOptionCheckBoxOff", "sfx")
+				end)
+			end
+		end
+		child:Show()
+	end
+
+	local function FinishTransmogAppearancePage(origInitTab, player, itemIDs, visualPage, hasMore)
+		EnsureTransmogAppearanceCards()
+		origInitTab(player, itemIDs, visualPage, hasMore)
+
+		local hasItem = ActiveSlotHasItem()
+		for i = transmogLayout.serverPageSize + 1, transmogLayout.cardCount do
+			ApplyAppearanceToCard(i, itemIDs and itemIDs[i], hasItem)
+		end
+
+		SyncActiveTransmogSlotFromUI()
+		RefreshAllTransmogCardPreviews()
+		E:Delay(0, function()
+			LayoutTransmogrificationFrame()
+			ReconcileTransmogCards()
+		end)
+		E:Delay(0.1, ReconcileTransmogCards)
+	end
+
+	local function FlattenAppearanceChunks(chunks)
+		local out = {}
+		for i = 1, #chunks do
+			local chunk = chunks[i]
+			if chunk then
+				for j = 1, #chunk do
+					out[#out + 1] = chunk[j]
+				end
+			end
+		end
+		return out
+	end
+
+	local function InstallTransmogPageAggregation()
+		if not PA.TransmogHandlers or not PA.TransmogHandlers.InitTab or PA.TransmogHandlers.__elvPAPaged then return end
+
+		local origInitTab = PA.TransmogHandlers.InitTab
+		local aio = _G.AIO
+		local origHandle = aio and aio.Handle
+		local pagesPerView = transmogLayout.rows
+		local collect = {
+			token = 0,
+			slot = nil,
+			search = nil,
+			visualPage = 1,
+			expectedPage = nil,
+			chunks = {},
+		}
+
+		local function RequestServerPage(serverPage)
+			if not origHandle then return end
+			if collect.search then
+				origHandle("TransmogrificationServer", "SetSearchCurrentSlotItemIDs", collect.slot, serverPage, collect.search)
+			else
+				origHandle("TransmogrificationServer", "SetCurrentSlotItemIDs", collect.slot, serverPage)
+			end
+		end
+
+		PA.TransmogHandlers.InitTab = function(player, newSlotItemIDs, page, hasMorePages)
+			if collect.token ~= 0 and page ~= collect.expectedPage then
+				return
+			end
+			if collect.token == 0 then
+				FinishTransmogAppearancePage(origInitTab, player, newSlotItemIDs, page, hasMorePages)
+				return
+			end
+
+			collect.chunks[#collect.chunks + 1] = newSlotItemIDs or {}
+			local got = #collect.chunks
+			if hasMorePages and got < pagesPerView then
+				collect.expectedPage = (collect.visualPage - 1) * pagesPerView + got + 1
+				RequestServerPage(collect.expectedPage)
+				return
+			end
+
+			local combined = FlattenAppearanceChunks(collect.chunks)
+			collect.token = 0
+			FinishTransmogAppearancePage(origInitTab, player, combined, collect.visualPage, hasMorePages and got == pagesPerView)
+		end
+
+		if origHandle and not aio.__elvPAPageRemap then
+			aio.Handle = function(addon, handler, ...)
+				if addon == "TransmogrificationServer" and (handler == "SetCurrentSlotItemIDs" or handler == "SetSearchCurrentSlotItemIDs") then
+					local slot, page, searchText = ...
+					collect.token = collect.token + 1
+					collect.slot = slot
+					collect.search = handler == "SetSearchCurrentSlotItemIDs" and searchText or nil
+					collect.visualPage = page or 1
+					collect.expectedPage = (collect.visualPage - 1) * pagesPerView + 1
+					collect.chunks = {}
+					if collect.search then
+						return origHandle(addon, handler, slot, collect.expectedPage, searchText)
+					end
+					return origHandle(addon, handler, slot, collect.expectedPage)
+				end
+				return origHandle(addon, handler, ...)
+			end
+			aio.__elvPAPageRemap = true
+		end
+
+		PA.TransmogHandlers.__elvPAPaged = true
+	end
+
 	local function SkinTransmogrificationFrame()
 		local frame = _G.TransmogrificationFrame
 		if not frame or frame.__elvPATransmogSkinned then return end
@@ -1298,32 +1478,13 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 		ApplyFont(_G.TransmogPaginationText, 12)
 		ApplyFont(_G.TransmogWarningText, 12)
 
-		for i = 1, 6 do
+		for i = 1, transmogLayout.cardCount do
 			SkinTransmogItemChild(_G["ItemChild"..i], i)
 		end
+		EnsureTransmogAppearanceCards()
+		InstallTransmogPageAggregation()
 
 		LayoutTransmogrificationFrame()
-
-		if PA.TransmogHandlers and PA.TransmogHandlers.InitTab then
-			hooksecurefunc(PA.TransmogHandlers, "InitTab", function()
-				SyncActiveTransmogSlotFromUI()
-				for i = 1, 6 do
-					local child = _G["ItemChild"..i]
-					local model = _G["ItemModel"..i]
-					local itemID = child and child:GetID()
-					if model and itemID and itemID > 0 then
-						ApplySlotPreviewCamera(model, itemID, 0)
-					end
-				end
-				E:Delay(0, function()
-					LayoutTransmogrificationFrame()
-					ReconcileTransmogCards()
-				end)
-				E:Delay(0.1, function()
-					ReconcileTransmogCards()
-				end)
-			end)
-		end
 
 		if _G.SetTab then
 			hooksecurefunc("SetTab", function()
@@ -1348,6 +1509,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 		end
 
 		frame:HookScript("OnShow", function()
+			EnsureTransmogAppearanceCards()
 			LayoutTransmogrificationFrame()
 			RefreshTransmogSlotBorders()
 			ApplyTransmogCardIdleState()
@@ -1361,6 +1523,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 	if _G.OnTransmogrificationFrameLoad then
 		hooksecurefunc("OnTransmogrificationFrameLoad", SkinTransmogrificationFrame)
 	end
+	InstallTransmogPageAggregation()
 	SkinTransmogrificationFrame()
 
 	end
