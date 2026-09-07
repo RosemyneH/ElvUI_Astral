@@ -72,6 +72,8 @@ function UF:Construct_HealComm(frame)
 
 	myBar:SetFrameLevel(11)
 	otherBar:SetFrameLevel(11)
+	myBar:EnableMouse(false)
+	otherBar:EnableMouse(false)
 
 	UF.statusbars[myBar] = true
 	UF.statusbars[otherBar] = true
@@ -84,6 +86,7 @@ function UF:Construct_HealComm(frame)
 	for k = 1, 5 do
 		local sBar = CreateFrame("StatusBar", nil, parent)
 		sBar:SetFrameLevel(11)
+		sBar:EnableMouse(false)
 		UF.statusbars[sBar] = true
 		UF:Update_StatusBar(sBar, texture)
 

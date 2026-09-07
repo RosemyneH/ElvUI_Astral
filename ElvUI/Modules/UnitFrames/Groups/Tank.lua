@@ -73,6 +73,8 @@ function UF:Update_TankHeader(header, db)
 end
 
 function UF:Update_TankFrames(frame, db)
+	if not frame or not frame.IsElementEnabled then return end
+
 	if not db then
 		db = frame.db
 	else

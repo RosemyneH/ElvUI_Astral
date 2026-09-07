@@ -18,6 +18,7 @@ function UF:Construct_Portrait(frame, type)
 		portrait.backdrop = backdrop
 	else
 		portrait = CreateFrame("PlayerModel", nil, frame)
+		portrait:EnableMouse(false)
 		portrait:CreateBackdrop("Default", nil, nil, self.thinBorders, true)
 	end
 
@@ -36,6 +37,16 @@ function UF:Configure_Portrait(frame, dontHide)
 		frame.Portrait.backdrop:Hide()
 	end
 	frame.Portrait = db.portrait.style == "2D" and frame.Portrait2D or frame.Portrait3D
+
+	if frame.Portrait3D and frame.Portrait ~= frame.Portrait3D then
+		frame.Portrait3D:Hide()
+		if frame.Portrait3D.ClearModel then frame.Portrait3D:ClearModel() end
+		if frame.Portrait3D.backdrop then frame.Portrait3D.backdrop:Hide() end
+	end
+	if frame.Portrait2D and frame.Portrait ~= frame.Portrait2D then
+		frame.Portrait2D:Hide()
+		if frame.Portrait2D.backdrop then frame.Portrait2D.backdrop:Hide() end
+	end
 
 	local portrait = frame.Portrait
 	if frame.USE_PORTRAIT then

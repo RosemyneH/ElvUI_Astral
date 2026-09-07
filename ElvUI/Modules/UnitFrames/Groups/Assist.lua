@@ -73,6 +73,8 @@ function UF:Update_AssistHeader(header, db)
 end
 
 function UF:Update_AssistFrames(frame, db)
+	if not frame or not frame.IsElementEnabled then return end
+
 	if not db then
 		db = frame.db
 	else

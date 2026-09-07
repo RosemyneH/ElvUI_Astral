@@ -5,7 +5,7 @@ UF.LSM = E.Libs.LSM
 
 --Lua functions
 local _G = _G
-local select, pairs, type, unpack, assert, tostring = select, pairs, type, unpack, assert, tostring
+local select, pairs, ipairs, type, unpack, assert, tostring = select, pairs, ipairs, type, unpack, assert, tostring
 local tremove, tinsert = table.remove, table.insert
 local find, gsub, format = string.find, string.gsub, string.format
 --WoW API / Variables
@@ -484,6 +484,36 @@ function UF:Construct_ClipFrame(frame, bar)
 	return child
 end
 
+function UF:Configure_UnitMouseover(frame)
+	if not frame then return end
+	if frame.MouseCatcher then
+		frame.MouseCatcher:Hide()
+		frame.MouseCatcher:EnableMouse(false)
+	end
+
+	-- ʕ •ᴥ•ʔ✿ Bars must be click-through so the secure unit button gets LeftClick ✿ ʕ •ᴥ•ʔ
+	local function clickThrough(obj)
+		if obj and obj.EnableMouse then obj:EnableMouse(false) end
+	end
+	clickThrough(frame.Health)
+	clickThrough(frame.Power)
+	clickThrough(frame.Energy)
+	clickThrough(frame.Rage)
+	clickThrough(frame.Castbar)
+	clickThrough(frame.InfoPanel)
+	if frame.Health then clickThrough(frame.Health.backdrop) end
+	if frame.Power then clickThrough(frame.Power.backdrop) end
+	if frame.Energy then clickThrough(frame.Energy.backdrop) end
+	if frame.Rage then clickThrough(frame.Rage.backdrop) end
+	if frame.Castbar then clickThrough(frame.Castbar.backdrop) end
+
+	if frame.isNamePlate then
+		if frame.EnableMouse then frame:EnableMouse(false) end
+		return
+	end
+	if frame.EnableMouse then frame:EnableMouse(true) end
+end
+
 function UF:Configure_FontString(obj)
 	UF.fontstrings[obj] = true
 	obj:FontTemplate() --This is temporary.
@@ -788,6 +818,7 @@ end
 
 function UF.headerPrototype:Update()
 	local group = self.groupName
+	if not group then return end
 	local db = UF.db.units[group]
 	UF["Update_"..E:StringTitle(group).."Header"](UF, self, db)
 
@@ -795,14 +826,17 @@ function UF.headerPrototype:Update()
 	local child = self:GetAttribute("child"..i)
 
 	while child do
-		UF["Update_"..E:StringTitle(group).."Frames"](UF, child, db)
-
-		if _G[child:GetName().."Pet"] then
-			UF["Update_"..E:StringTitle(group).."Frames"](UF, _G[child:GetName().."Pet"], db)
+		if child.IsElementEnabled then
+			UF["Update_"..E:StringTitle(group).."Frames"](UF, child, db)
 		end
 
-		if _G[child:GetName().."Target"] then
-			UF["Update_"..E:StringTitle(group).."Frames"](UF, _G[child:GetName().."Target"], db)
+		local name = child.GetName and child:GetName()
+		if name and _G[name.."Pet"] and _G[name.."Pet"].IsElementEnabled then
+			UF["Update_"..E:StringTitle(group).."Frames"](UF, _G[name.."Pet"], db)
+		end
+
+		if name and _G[name.."Target"] and _G[name.."Target"].IsElementEnabled then
+			UF["Update_"..E:StringTitle(group).."Frames"](UF, _G[name.."Target"], db)
 		end
 
 		i = i + 1
@@ -949,7 +983,6 @@ function UF:CreateAndUpdateHeaderGroup(group, groupFilter, template, headerUpdat
 
 		if not UF.headerFunctions[group] then UF.headerFunctions[group] = {} end
 		UF.headerFunctions[group].Update = function()
-		--	local db = UF.db.units[group]
 			if db.enable ~= true then
 				UnregisterStateDriver(UF[group], "visibility")
 				UF[group]:Hide()
@@ -958,22 +991,37 @@ function UF:CreateAndUpdateHeaderGroup(group, groupFilter, template, headerUpdat
 				end
 				return
 			end
-			UF["Update_"..E:StringTitle(group).."Header"](UF, UF[group], db)
 
-			for i = 1, UF[group]:GetNumChildren() do
-				local child = select(i, UF[group]:GetChildren())
-				UF["Update_"..E:StringTitle(group).."Frames"](UF, child, UF.db.units[group])
-
-				if _G[child:GetName().."Target"] then
-					UF["Update_"..E:StringTitle(group).."Frames"](UF, _G[child:GetName().."Target"], UF.db.units[group])
-				end
-
-				if _G[child:GetName().."Pet"] then
-					UF["Update_"..E:StringTitle(group).."Frames"](UF, _G[child:GetName().."Pet"], UF.db.units[group])
-				end
+			local header = UF[group]
+			if not header.groupName then
+				header.groupName = group
 			end
 
-			E:EnableMover(UF[group].mover:GetName())
+			UF["Update_"..E:StringTitle(group).."Header"](UF, header, db)
+
+			local i = 1
+			local child = header:GetAttribute("child"..i)
+			while child do
+				if child.IsElementEnabled then
+					UF["Update_"..E:StringTitle(group).."Frames"](UF, child, db)
+				end
+
+				local name = child.GetName and child:GetName()
+				if name and _G[name.."Pet"] and _G[name.."Pet"].IsElementEnabled then
+					UF["Update_"..E:StringTitle(group).."Frames"](UF, _G[name.."Pet"], db)
+				end
+
+				if name and _G[name.."Target"] and _G[name.."Target"].IsElementEnabled then
+					UF["Update_"..E:StringTitle(group).."Frames"](UF, _G[name.."Target"], db)
+				end
+
+				i = i + 1
+				child = header:GetAttribute("child"..i)
+			end
+
+			if header.mover then
+				E:EnableMover(header.mover:GetName())
+			end
 		end
 
 		if headerUpdate then
