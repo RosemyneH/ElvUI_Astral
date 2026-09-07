@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.37](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.37) (2026-09-07)
+
+### Features
+
+* Nameplates use the ElvUI 335a WorldFrame scanner instead of oUF / AwesomeWotLK plates
+* Target glow arrows and 335a style-filter options are restored
+
+### Fixes
+
+* ACP addon skin is removed
+* Project Astral gem-deposit button is not created twice when QoL already added one
+
 ## [7.36](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.36) (2026-09-06)
 
 ### Features
