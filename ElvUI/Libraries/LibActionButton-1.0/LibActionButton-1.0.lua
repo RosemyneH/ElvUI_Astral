@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ]]
 local MAJOR_VERSION = "LibActionButton-1.0-ElvUI"
-local MINOR_VERSION = 67
+local MINOR_VERSION = 72
 
 if not LibStub then error(MAJOR_VERSION .. " requires LibStub.") end
 local lib, oldversion = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
@@ -136,14 +136,17 @@ function lib:CreateButton(id, name, header, config)
 	end
 
 	local button = setmetatable(CreateFrame("CheckButton", name, header, "SecureActionButtonTemplate, ActionButtonTemplate"), Generic_MT)
+	button:UnregisterAllEvents()
+	button:SetAttribute("useparent-unit", nil)
+	button:SetAttribute("useparent-actionpage", nil)
 	button:RegisterForDrag("LeftButton", "RightButton")
 	button:RegisterForClicks("AnyUp")
 
 	-- Frame Scripts
 	button:SetScript("OnEnter", Generic.OnEnter)
 	button:SetScript("OnLeave", Generic.OnLeave)
-	button:SetScript("PreClick", Generic.PreClick)
-	button:SetScript("PostClick", Generic.PostClick)
+	button:SetScript("OnEvent", nil)
+	button:SetScript("OnUpdate", nil)
 
 	button.id = id
 	button.header = header
@@ -185,9 +188,6 @@ function lib:CreateButton(id, name, header, config)
 	-- run an initial update
 	button:UpdateAction()
 	UpdateHotkeys(button)
-
-	-- somewhat of a hack for the Flyout buttons to not error.
-	button.action = 0
 
 	lib.callbacks:Fire("OnButtonCreated", button)
 
@@ -331,24 +331,15 @@ function SetupSecureSnippets(button)
 		control:RunFor(self, self:GetAttribute("UpdateState"), self:GetAttribute("state"))
 	]])
 
-	button:SetScript("OnAttributeChanged", function(self, ...)
-		button:ButtonContentsChanged(...)
+	button:SetScript("OnAttributeChanged", function(self, name)
+		if name == "type" or name == "action" or name == "state" then
+			self:UpdateAction(true)
+		end
 	end)
 end
 
 function WrapOnClick(button)
-	-- Wrap OnClick, to catch changes to actions that are applied with a click on the button.
-	button.header:WrapScript(button, "OnClick", [[
-		if self:GetAttribute("type") == "action" then
-			local type, action = GetActionInfo(self:GetAttribute("action"))
-			return nil, format("%s|%s", tostring(type), tostring(action))
-		end
-	]], [[
-		local type, action = GetActionInfo(self:GetAttribute("action"))
-		if message ~= format("%s|%s", tostring(type), tostring(action)) then
-			return control:RunFor(self, self:GetAttribute("UpdateState"), self:GetAttribute("state"))
-		end
-	]])
+	-- ʕ •ᴥ•ʔ✿ Leave XML OnClick; SetScript here taints UseAction ✿ ʕ •ᴥ•ʔ
 end
 
 -----------------------------------------------------------
@@ -955,6 +946,9 @@ function Generic:UpdateAction(force)
 		self._state_action = action
 		Update(self)
 	end
+	if self._state_type == "action" then
+		self.action = self._state_action
+	end
 end
 
 function Update(self, fromUpdateConfig)
@@ -1322,8 +1316,6 @@ if oldversion and next(lib.buttonRegistry) then
 		-- this refreshes the metatable on the button
 		Generic.UpdateAction(button, true)
 		SetupSecureSnippets(button)
-		if oldversion < 12 then
-			WrapOnClick(button)
-		end
+		WrapOnClick(button)
 	end
 end
