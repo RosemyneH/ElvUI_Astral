@@ -1084,10 +1084,12 @@ do
 			if UnitIsPlayer(text) then
 				notMyQuest = text ~= E.myname
 			elseif text and not notMyQuest then
-				local count, percent = NP.QuestIcons.CheckTextForQuest(text)
+				local questIcons = NP.QuestIcons
+				if not questIcons then return end
+				local count, percent = questIcons.CheckTextForQuest(text)
 
 				-- this line comes from one line up in the tooltip
-				local activeQuest = NP.QuestIcons.activeQuests[text]
+				local activeQuest = questIcons.activeQuests[text]
 				if activeQuest then activeID = activeQuest end
 
 				if count then

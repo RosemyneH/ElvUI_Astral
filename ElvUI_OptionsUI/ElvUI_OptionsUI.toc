@@ -19,7 +19,6 @@ Cooldown.lua
 DataTexts.lua
 Filters.lua
 Nameplates.lua
-StyleFilters.lua
 Skins.lua
 Tooltip.lua
 UnitFrames.lua

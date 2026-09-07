@@ -4,10 +4,6 @@ local NP = E:GetModule("NamePlates")
 --Lua functions
 --WoW API / Variables
 
--- Populated by BG/arena healer detection when available; initialized here
--- because nothing else on this build creates it (indexing nil would error)
-NP.Healers = NP.Healers or {}
-
 function NP:Update_HealerIcon(frame)
 	local icon = frame.HealerIcon
 	if frame.UnitType == "ENEMY_PLAYER" and self.Healers[frame.UnitName] then

@@ -242,38 +242,16 @@ function E:ChangeRole(role)
 end
 
 function E:ApplyAwesomeNameplateMode()
-	local native = not not _G.ELVUI_NATIVE_AWESOME_NAMEPLATES
-	local stock = self.global and self.global.forceStockNameplates
-	self.AwesomeNameplates = native and not stock
-	_G.ELVUI_HAS_AWESOME_NAMEPLATES = self.AwesomeNameplates
+	-- ʕ •ᴥ•ʔ✿ WorldFrame 3.3.5a plates; keep AwesomeWotLK driver off ✿ ʕ •ᴥ•ʔ
+	if self.global then
+		self.global.forceStockNameplates = true
+	end
+	self.AwesomeNameplates = false
+	_G.ELVUI_HAS_AWESOME_NAMEPLATES = false
 end
 
 function E:ToggleAwesomeNameplates(msg)
-	msg = lower(msg or "")
-	local native = not not _G.ELVUI_NATIVE_AWESOME_NAMEPLATES
-	if msg == "status" or msg == "" then
-		local mode = self.AwesomeNameplates and "AwesomeWotLK" or "stock 3.3.5"
-		self:Print("Nameplates: "..mode..(native and " (API present)" or " (no AwesomeWotLK API)")..(self.global.forceStockNameplates and " [forced stock]" or ""))
-		self:Print("/eplates awesome  or  /eplates stock  (reloads UI)")
-		return
-	end
-	if msg == "awesome" or msg == "on" then
-		if not native then
-			self:Print("AwesomeWotLK nameplate API is not installed. Stock path only.")
-			return
-		end
-		self.global.forceStockNameplates = false
-	elseif msg == "stock" or msg == "off" then
-		self.global.forceStockNameplates = true
-	elseif msg == "toggle" then
-		self.global.forceStockNameplates = not self.global.forceStockNameplates
-	else
-		self:Print("/eplates awesome | stock | toggle | status")
-		return
-	end
-	self:ApplyAwesomeNameplateMode()
-	self:Print("Nameplates -> "..(self.AwesomeNameplates and "AwesomeWotLK" or "stock 3.3.5")..". Reloading.")
-	ReloadUI()
+	self:Print("Nameplates use the 3.3.5a WorldFrame scanner (ElvUI 335a). AwesomeWotLK oUF plates are disabled.")
 end
 
 function E:LoadCommands()

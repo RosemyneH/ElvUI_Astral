@@ -100,6 +100,13 @@ E.InversePoints = {
 	CENTER = "CENTER"
 }
 
+E.HealingClasses = {
+	PALADIN = 1,
+	SHAMAN = 3,
+	DRUID = 3,
+	PRIEST = {1, 2}
+}
+
 local colorizedName
 function E:ColorizedName(name, arg2)
 	local length = strlen(name)
@@ -1119,22 +1126,13 @@ function E:DBConversions()
 		E.private.skins.blizzard.greeting = nil
 	end
 
-	-- VERSION 7.0 -- nameplate overhaul (only migrate real pre-7 profiles)
-	local dbVer = tonumber(E.db.version)
-	if dbVer and dbVer > 0 and dbVer < 7 then
+	-- ʕ •ᴥ•ʔ✿ oUF plateSize.width profiles need the 3.3.5a defaults ✿ ʕ •ᴥ•ʔ
+	local plateSize = E.db.nameplates and E.db.nameplates.plateSize
+	if plateSize and plateSize.width and not plateSize.friendlyWidth then
 		E:CopyTable(self.db.nameplates, P.nameplates)
 	end
-
-	if not E.db.version or E.db.version < 7.13 then
-		if not E.db.nameplates.plateSize.width then
-			E.db.nameplates.plateSize.width = P.nameplates.plateSize.width
-			E.db.nameplates.plateSize.enemyWidth = nil
-		end
-
-		if not E.db.nameplates.plateSize.height then
-			E.db.nameplates.plateSize.height = P.nameplates.plateSize.height
-			E.db.nameplates.plateSize.enemyHeight = nil
-		end
+	if self.global then
+		self.global.forceStockNameplates = true
 	end
 
 	E.db.version = E.versionNum
