@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.38](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.38) (2026-09-07)
+
+### Features
+
+* Project Astral transmog appearances show in a 6×3 grid (18 cards per view)
+
+### Fixes
+
+* Character, inspect, spellbook, help, and LFG skins target stock 3.3.5 Blizzard frames
+* Enhanced equipment/inspect hooks no longer depend on AscensionUI
+* Out-of-date prompts point at GitHub only
+
 ## [7.37](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.37) (2026-09-07)
 
 ### Features
