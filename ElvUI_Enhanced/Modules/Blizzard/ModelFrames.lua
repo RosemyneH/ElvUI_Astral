@@ -18,14 +18,6 @@ local modelFrames = {
 	"PetStableModel",
 	"StoreCollectionFramePaperModelPreview",
 	"StoreCollectionFrameModelPreview",
-	"AscensionCollectionModel",
-	"AscensionCollectionFrameModel",
-	"AscensionVanityModel",
-	"AscensionVanityFrameModel",
-	"AscensionVanityCollectionModel",
-	"AscensionVanityCollectionFrameModel",
-	"AscensionWardrobeModel",
-	"AscensionWardrobeFrameModel",
 	"CollectionModel",
 	"CollectionFrameModel",
 	"WardrobeModel",
@@ -297,11 +289,16 @@ function MF:ModelWithControls(model)
 		end
 		self.mouseDown = false
 		self.controlFrame:Hide()
-		MF:Model_Reset(self)
+		if self:GetName() ~= "InspectModelFrame" then
+			MF:Model_Reset(self)
+		end
 	end)
 	model:HookScript("OnShow", function(self)
 		self.zoomLevel = 0
 		MF:UpdateZoomSlider(self)
+		if self:GetName() == "InspectModelFrame" and InspectFrame and InspectFrame.unit and self.SetUnit then
+			self:SetUnit(InspectFrame.unit)
+		end
 	end)
 end
 

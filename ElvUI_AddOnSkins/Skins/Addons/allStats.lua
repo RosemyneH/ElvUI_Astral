@@ -13,7 +13,7 @@ S:AddCallbackForAddon("AllStats", "AllStats", function()
 	AllStatsFrame:StripTextures()
 	AllStatsFrame:SetTemplate("Transparent")
 	AllStatsFrame:Height(424)
-	AllStatsFrame:Point("TOPLEFT", AscensionCharacterFrame, "TOPRIGHT", 2, -6)
+	AllStatsFrame:Point("TOPLEFT", CharacterFrame, "TOPRIGHT", 2, -6)
 
 	S:HandleButton(AllStatsButtonShowFrame)
 	AllStatsButtonShowFrame:Height(21)

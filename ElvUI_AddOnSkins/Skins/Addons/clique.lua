@@ -53,7 +53,7 @@ S:AddCallbackForAddon("Clique", "Clique", function()
         SkinFrame(CliqueFrame)
 
         CliqueFrame:Height(424)
-        CliqueFrame:Point("LEFT", AscensionSpellbookFrame, "RIGHT", 6, 32)
+        CliqueFrame:Point("LEFT", SpellBookFrame, "RIGHT", 6, 32)
 
         S:HandleCloseButton(CliqueButtonClose)
         CliqueButtonClose:Size(32)

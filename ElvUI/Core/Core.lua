@@ -54,7 +54,7 @@ E.noop = function() end
 E.title = format("|cff1784d1E|r|cffe5e3e3lvUI|r")
 E.myfaction, E.myLocalizedFaction = UnitFactionGroup("player")
 E.mylevel = UnitLevel("player")
-E.myLocalizedClass, E.myclass = UnitClass("player")  -- On Ascension, this is always (Hero, HERO)
+E.myLocalizedClass, E.myclass = UnitClass("player")
 E.myLocalizedRace, E.myrace = UnitRace("player")
 E.myname = UnitName("player")
 E.myrealm = GetRealmName()
@@ -410,9 +410,6 @@ function E:IncompatibleAddOn(addon, module)
 end
 
 function E:IsAddOnEnabled(addon)
-	if addon == "Ascension_NamePlates" then
-		return C_CVar and C_CVar.GetBool and C_CVar.GetBool("useNewNamePlates")
-	end
 	local _, _, _, enabled, _, reason = GetAddOnInfo(addon)
 	if reason ~= "MISSING" and enabled then
 		return true
@@ -437,8 +434,6 @@ function E:CheckIncompatible()
 			self:IncompatibleAddOn("Healers-Have-To-Die", "NamePlates")
 		elseif self:IsAddOnEnabled("TidyPlates") then
 			self:IncompatibleAddOn("TidyPlates", "NamePlates")
-		elseif self:IsAddOnEnabled("Ascension_NamePlates") then
-			self:IncompatibleAddOn("Ascension_NamePlates", "NamePlates")
 		elseif self:IsAddOnEnabled("Kui_Nameplates") then
 			self:IncompatibleAddOn("Kui_Nameplates", "NamePlates")
 		end

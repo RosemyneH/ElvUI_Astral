@@ -961,11 +961,17 @@ function module:PvPPower(statFrame, unit)
 	statFrame.tooltip2 = text
 end
 
-local felCommText = AscensionUI.CharacterFrame.Extension.StatPanel.FelCommutation.Content.CostText
+local felCommText
+do
+	local ui = _G.AscensionUI
+	local panel = ui and ui.CharacterFrame and ui.CharacterFrame.Extension and ui.CharacterFrame.Extension.StatPanel
+	local cost = panel and panel.FelCommutation and panel.FelCommutation.Content
+	felCommText = cost and cost.CostText
+end
 function module:FelComm(statFrame, unit)
 	if not self.Initialized then return end
 
-	if felCommText:GetText() then
+	if felCommText and felCommText.GetText and felCommText:GetText() then
 		statFrame.Label:SetText(felCommText:GetText())
 	else
 		statFrame.Label:SetText(GetMoneyString(0))
@@ -2230,7 +2236,9 @@ function module:UpdateInspectModelFrame()
 			InspectModelFrame.backdrop:Show()
 		end
 
+		if not InspectFrame or not InspectFrame.unit then return end
 		local _, raceEng = UnitRace(InspectFrame.unit)
+		if not raceEng then return end
 		raceEng = lower(raceEng)
 		local desaturate = E.db.enhanced.character.desaturateInspect and true or false
 
@@ -2426,9 +2434,6 @@ function module:Initialize()
 	SetCVar("equipmentManager", 1)
 
 	if self.skinEnabled then
-		if _G.AscensionCharacterFrame then
-			AscensionCharacterFrame:Hide()
-		end
 		CharacterFrameCloseButton:Point("CENTER", CharacterFrame.backdrop, "TOPRIGHT", -12, -13)
 
 		CharacterFrame.backdrop:ClearAllPoints()
@@ -3181,7 +3186,19 @@ end
 	self:RegisterEvent("ADDON_LOADED", function(event, addon)
 		if addon == "Blizzard_InspectUI" then
 			module:UnregisterEvent(event)
-			module:SecureHook("InspectFrame_UpdateTalentTab", "UpdateInspectModelFrame")
+			if _G.InspectFrame_UpdateTalentTab then
+				module:SecureHook("InspectFrame_UpdateTalentTab", "UpdateInspectModelFrame")
+			end
+			if InspectFrame then
+				InspectFrame:HookScript("OnShow", function()
+					module:UpdateInspectModelFrame()
+				end)
+			end
+			if InspectPaperDollFrame then
+				InspectPaperDollFrame:HookScript("OnShow", function()
+					module:UpdateInspectModelFrame()
+				end)
+			end
 		end
 	end)
 end

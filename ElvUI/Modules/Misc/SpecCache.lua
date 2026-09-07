@@ -247,7 +247,7 @@ driver:SetScript("OnUpdate", function(self, elapsed)
 		return
 	end
 	if InCombatLockdown() then return end -- resume after combat
-	if _G.AscensionInspectFrame and _G.AscensionInspectFrame:IsShown() then return end
+	if _G.InspectFrame and _G.InspectFrame:IsShown() then return end
 
 	-- Phase 2: a pending inspect read
 	local pending = self.pendingRead

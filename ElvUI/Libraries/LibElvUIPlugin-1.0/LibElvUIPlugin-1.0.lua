@@ -50,7 +50,7 @@ lib.plugins = {}
 lib.groupSize = 0
 lib.index = 0
 
-local MSG_OUTDATED = "Your version of %s %s is out of date (latest is version %s). You can download the latest version from the Ascension Launcher, or https://github.com/RosemyneH/ElvUI_Astral"
+local MSG_OUTDATED = "Your version of %s %s is out of date (latest is version %s). You can download the latest version from https://github.com/RosemyneH/ElvUI_Astral"
 local HDR_CONFIG = "Plugins"
 local HDR_INFORMATION = "LibElvUIPlugin-1.0.%d - Plugins Loaded (Green means you have current version, Red means out of date)"
 local INFO_BY = "by"

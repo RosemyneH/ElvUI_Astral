@@ -44,7 +44,7 @@ E.PopupDialogs.ELVUI_UPDATED_WHILE_RUNNING = {
 }
 
 E.PopupDialogs.ELVUI_UPDATE_AVAILABLE = {
-	text = L["ElvUI is five or more revisions out of date. You can download the newest version from the Ascension Launcher, or https://github.com/RosemyneH/ElvUI_Astral"],
+	text = L["ElvUI is five or more revisions out of date. You can download the newest version from https://github.com/RosemyneH/ElvUI_Astral"],
 	hasEditBox = 1,
 	OnShow = function(self)
 		self.editBox:SetAutoFocus(false)
@@ -182,13 +182,7 @@ E.PopupDialogs.INCOMPATIBLE_ADDON = {
 		ReloadUI()
 	end,
 	OnCancel = function()
-		if E.PopupDialogs.INCOMPATIBLE_ADDON.addon == "Ascension_NamePlates" then
-			if C_CVar and C_CVar.Set then
-				C_CVar.Set("useNewNamePlates", "0")
-			end
-		else
-			DisableAddOn(E.PopupDialogs.INCOMPATIBLE_ADDON.addon)
-		end
+		DisableAddOn(E.PopupDialogs.INCOMPATIBLE_ADDON.addon)
 		ReloadUI()
 	end,
 	button3 = L["Disable Warning"],

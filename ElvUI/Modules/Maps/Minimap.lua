@@ -32,7 +32,7 @@ local menuList = {
 		text = SPELLBOOK_ABILITIES_BUTTON,
 		notCheckable = 1,
 		func = function()
-			ToggleFrame(_G.AscensionSpellbookFrame or _G.SpellBookFrame)
+			ToggleFrame(_G.SpellBookFrame)
 		end
 	},
 	{
@@ -85,14 +85,14 @@ local menuList = {
 		text = PLAYER_V_PLAYER,
 		notCheckable = 1,
 		func = function()
-			ToggleFrame(_G.AscensionLFGFrame or _G.LFDParentFrame or _G.LFDQueueFrame)
+			ToggleFrame(_G.LFDParentFrame or _G.LFDQueueFrame)
 		end
 	},
 	{
 		text = LFG_TITLE,
 		notCheckable = 1,
 		func = function()
-			ToggleFrame(_G.AscensionLFGFrame or _G.LFDParentFrame or _G.LFDQueueFrame)
+			ToggleFrame(_G.LFDParentFrame or _G.LFDQueueFrame)
 		end
 	},
 	{

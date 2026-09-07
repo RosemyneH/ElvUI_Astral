@@ -4,7 +4,7 @@
 ## Title: |cff1784d1E|r|cffe5e3e3lvUI|r |cff1784d1E|r|cffe5e3e3nhanced|r
 ## Notes: Plugin-Enhancements for |cff1784d1E|r|cffe5e3e3lvUI|r.
 ## SavedVariables: EnhancedDB
-## RequiredDeps: ElvUI, AscensionUI
+## RequiredDeps: ElvUI
 ## DefaultState: Enabled
 ## X-IconTexture: Interface\AddOns\ElvUI\Media\ElvUILogo
 

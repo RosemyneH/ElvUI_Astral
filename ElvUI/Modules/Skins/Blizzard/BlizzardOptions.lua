@@ -213,8 +213,7 @@ S:AddCallback("Skin_BlizzardOptions", function()
 		"InterfaceOptionsNamesPanelEnemyPets",
 		"InterfaceOptionsNamesPanelEnemyGuardians",
 		"InterfaceOptionsNamesPanelEnemyTotems",
-		
-		-- Ascension Nameplate options
+
 		"InterfaceOptionsNamePlatesPanelUseSmoothStacking",
 		"InterfaceOptionsNamePlatesPanelUseFriendlySmoothStacking",
 		"InterfaceOptionsNamePlatesPanelNameplateHighPrecision",
@@ -294,23 +293,6 @@ S:AddCallback("Skin_BlizzardOptions", function()
 
 		"InterfaceOptionsFeaturesPanelPreviewTalentChanges",
 		"InterfaceOptionsFeaturesPanelEquipmentManager",
-
-		"InterfaceOptionsAscensionNotificationPanelLootToast",
-		"InterfaceOptionsAscensionNotificationPanelEnableItems",
-		"InterfaceOptionsAscensionNotificationPanelEnableNewSpellRanks",
-		"InterfaceOptionsAscensionNotificationPanelFlashWindow",
-		"InterfaceOptionsAscensionNotificationPanelEnableLegendaryItems",
-		"InterfaceOptionsAscensionNotificationPanelEnableNewSpells",
-
-		"InterfaceOptionsAscensionLoseControlPanelEnabled",
-		"InterfaceOptionsAscensionLoseControlPanelEnableRoots",
-		"InterfaceOptionsAscensionLoseControlPanelEnableSilence",
-		"InterfaceOptionsAscensionLoseControlPanelEnableIncap",
-		"InterfaceOptionsAscensionLoseControlPanelEnableDisarm",
-		"InterfaceOptionsAscensionLoseControlPanelEnableDisorient",
-		"InterfaceOptionsAscensionLoseControlPanelEnableSlow",
-		"InterfaceOptionsAscensionLoseControlPanelEnableStun",
-		"InterfaceOptionsAscensionLoseControlPanelEnablePacify",
 
 		"InterfaceOptionsDraftPanelAutoPopupDraft",
 		"InterfaceOptionsDraftPanelAutoRevealDraft",
@@ -398,10 +380,6 @@ S:AddCallback("Skin_BlizzardOptions", function()
 		"VideoOptionsEffectsPanelFullScreenGlow",
 		"VideoOptionsEffectsPanelDeathEffect",
 		"VideoOptionsEffectsPanelProjectedTextures",
-
-		"InterfaceOptionsAscensionHelpPanelNewPlayerExperience",
-		"InterfaceOptionsAscensionHelpPanelHelpTips"
-
 	}
 	for _, checkbox in ipairs(checkboxes) do
 		checkbox = _G[checkbox]
@@ -444,8 +422,6 @@ S:AddCallback("Skin_BlizzardOptions", function()
 		"InterfaceOptionsActionCameraDistance",
 		"InterfaceOptionsActionCameraTurnSpeed",
 		"InterfaceOptionsActionCameraMaxPitch",
-		
-		"InterfaceOptionsAscensionNotificationPanelLootToastMaximum",
 
 		"CompactUnitFrameProfilesGeneralOptionsFrameHeightSlider",
 		"CompactUnitFrameProfilesGeneralOptionsFrameWidthSlider", 
@@ -494,13 +470,8 @@ S:AddCallback("Skin_BlizzardOptions", function()
 		"VideoOptionsFrameCancel",
 		"VideoOptionsFrameApply",
 
-		"InterfaceOptionsAscensionLoseControlPanelMoveWindow", -- old Name?
-		"InterfaceOptionsAscensionLoseControlPanelResetWindow", -- old Name?
 		"InterfaceOptionsLoseControlPanelMoveWindow",
 		"InterfaceOptionsLoseControlPanelResetWindow",
-
-		"InterfaceOptionsAscensionHelpPanelResetTutorials",
-		"InterfaceOptionsAscensionHelpPanelResetHelpTips",
 
 		"CompactUnitFrameProfilesExportButton",
 		"CompactUnitFrameProfilesImportButton",
