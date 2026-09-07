@@ -1,50 +1,20 @@
 -- ʕ •ᴥ•ʔ✿ 3.3.5a shims so Ascension/retail ElvUI can boot ✿ ʕ •ᴥ•ʔ
 
-do
-	local origCreateFrame = CreateFrame
-	local function PatchTexture(tex)
-		if not tex then return tex end
-		tex.SetAtlas = function(self, atlas)
-			if type(atlas) == "string" and strfind(atlas, "\\") then
-				return self:SetTexture(atlas)
-			end
-		end
-		if not tex.SetColorTexture then
-			tex.SetColorTexture = function(self, r, g, b, a)
-				return self:SetTexture(r, g, b, a)
-			end
-		end
-		return tex
-	end
-	local function PatchFrame(frame)
-		if not frame or frame.__elvCompat then return frame end
-		frame.__elvCompat = true
-		if frame.CreateTexture then
-			local origCreateTexture = frame.CreateTexture
-			frame.CreateTexture = function(self, ...)
-				return PatchTexture(origCreateTexture(self, ...))
-			end
-		end
-		return frame
-	end
-	function CreateFrame(frameType, name, parent, inherits, ...)
-		if type(inherits) == "string" and strfind(inherits, "BackdropTemplate") then
-			inherits = gsub(inherits, "%s*,%s*BackdropTemplate", "")
-			inherits = gsub(inherits, "BackdropTemplate%s*,%s*", "")
-			inherits = gsub(inherits, "BackdropTemplate", "")
-			if inherits == "" then
-				inherits = nil
-			end
-		end
-		return PatchFrame(origCreateFrame(frameType, name, parent, inherits, ...))
-	end
-end
+-- ʕ •ᴥ•ʔ✿ Never replace CreateFrame; ExecuteCastSequence calls it and taints /castsequence ✿ ʕ •ᴥ•ʔ
 
 do
 	local origSetCVar = SetCVar
 	function SetCVar(cvar, value, ...)
 		return pcall(origSetCVar, cvar, value, ...)
 	end
+	local restore = CreateFrame("Frame")
+	restore:RegisterEvent("ADDON_LOADED")
+	restore:SetScript("OnEvent", function(self, _, addon)
+		if addon ~= "ElvUI" then return end
+		_G.SetCVar = origSetCVar
+		self:UnregisterAllEvents()
+		self:SetScript("OnEvent", nil)
+	end)
 end
 
 if not CreateCounter then
