@@ -7,11 +7,13 @@ local ElvUF = E.oUF
 local _G = _G
 local select, strsplit, tostring = select, strsplit, tostring
 local pairs, ipairs, wipe, tinsert = pairs, ipairs, wipe, tinsert
+local abs = math.abs
 
 local CreateFrame = CreateFrame
 local GetCVar = GetCVar
 local GetCVarDefault = GetCVarDefault
 local GetInstanceInfo = GetInstanceInfo
+local UIParent = UIParent
 local GetNumGroupMembers = GroupUtil.GetNumGroupMembers
 local GetNumSubgroupMembers = GetNumPartyMembers
 local GetPartyAssignment = GetPartyAssignment
@@ -36,9 +38,18 @@ local UnitThreatSituation = UnitThreatSituation
 local function SetNamePlateSize(width, height)
 	local mgr = _G.C_NamePlateManager
 	if mgr then
-		if mgr.SetNamePlateFriendlySize then mgr.SetNamePlateFriendlySize(width, height) end
-		if mgr.SetNamePlateEnemySize then mgr.SetNamePlateEnemySize(width, height) end
-		if mgr.SetNamePlateSize then mgr.SetNamePlateSize(width, height) end
+		local ok = pcall(function()
+			if mgr.SetNamePlateFriendlySize then mgr.SetNamePlateFriendlySize(width, height) end
+			if mgr.SetNamePlateEnemySize then mgr.SetNamePlateEnemySize(width, height) end
+			if mgr.SetNamePlateSize then mgr.SetNamePlateSize(width, height) end
+		end)
+		if ok then
+			NP.pendingNamePlateSize = nil
+			return
+		end
+	end
+	if InCombatLockdown() then
+		NP.pendingNamePlateSize = {width, height}
 	end
 end
 local hooksecurefunc = hooksecurefunc
@@ -126,6 +137,11 @@ function NP:ApplyMotionCVars()
 			ForceCVar('nameplateOverlapH', overlapH)
 			ForceCVar('nameplateOverlapV', overlapV)
 		end
+
+		ForceCVar('nameplateHitboxWidth', width)
+		ForceCVar('nameplateHitboxHeight', height)
+		ForceCVar('nameplateFriendlyHitboxWidth', width)
+		ForceCVar('nameplateFriendlyHitboxHeight', height)
 	end
 
 	NP:ApplyAllPlateStacking()
@@ -211,16 +227,48 @@ function NP:SetCVars()
 	NP:SetCVar('showVKeyCastbar', 1)
 	SetNamePlateCastBarMode(1)
 
-	-- ʕ •ᴥ•ʔ✿ Combat toggle owns these CVars when it isn't DISABLED ✿ ʕ •ᴥ•ʔ
+	NP:ApplyFriendlyEnemyPlateCVars()
+end
+
+function NP:StoreFriendlyEnemyPlateCVars()
+	local vis = NP.db.visibility
+	if not vis then return end
 	if NP.db.showFriendlyCombat == 'DISABLED' then
-		NP:SetCVar('nameplateShowFriends', 1)
+		vis.showFriends = GetCVar('nameplateShowFriends') ~= '0'
 	end
 	if NP.db.showEnemyCombat == 'DISABLED' then
-		NP:SetCVar('nameplateShowEnemies', 1)
+		vis.showEnemies = GetCVar('nameplateShowEnemies') ~= '0'
 	end
 end
 
+function NP:ApplyFriendlyEnemyPlateCVars()
+	local vis = NP.db.visibility
+	if not vis then return end
+	if NP.db.showFriendlyCombat == 'DISABLED' and vis.showFriends ~= nil then
+		NP:SetCVar('nameplateShowFriends', vis.showFriends and 1 or 0)
+	end
+	if NP.db.showEnemyCombat == 'DISABLED' and vis.showEnemies ~= nil then
+		NP:SetCVar('nameplateShowEnemies', vis.showEnemies and 1 or 0)
+	end
+end
+
+function NP:CVAR_UPDATE(_, cvar)
+	if cvar ~= 'nameplateShowFriends' and cvar ~= 'nameplateShowEnemies' then return end
+	if InCombatLockdown() then return end
+	NP:StoreFriendlyEnemyPlateCVars()
+end
+
+function NP:PLAYER_LOGOUT()
+	NP:StoreFriendlyEnemyPlateCVars()
+end
+
 function NP:PLAYER_REGEN_DISABLED()
+	if E.AwesomeNameplates then
+		for nameplate in pairs(NP.Plates) do
+			NP:UpdatePlateSize(nameplate)
+		end
+	end
+
 	if NP.db.showFriendlyCombat == 'TOGGLE_ON' then
 		NP:SetCVar('nameplateShowFriends', 1)
 	elseif NP.db.showFriendlyCombat == 'TOGGLE_OFF' then
@@ -235,6 +283,15 @@ function NP:PLAYER_REGEN_DISABLED()
 end
 
 function NP:PLAYER_REGEN_ENABLED()
+	if NP.pendingNamePlateSize then
+		local size = NP.pendingNamePlateSize
+		SetNamePlateSize(size[1], size[2])
+	end
+	if NP.pendingDriver then
+		NP.pendingDriver = nil
+		NP:SpawnNameplateDriver()
+	end
+
 	if NP.db.showFriendlyCombat == 'TOGGLE_ON' then
 		NP:SetCVar('nameplateShowFriends', 0)
 	elseif NP.db.showFriendlyCombat == 'TOGGLE_OFF' then
@@ -310,7 +367,6 @@ function NP:ApplyPlatePixelScale(nameplate, extra)
 		nameplate:SetScale(E.mult * extra)
 		return
 	end
-	-- ʕ •ᴥ•ʔ✿ Stock plates inherit WorldFrame/camera scale; extra SetScale shifts them off the unit ✿ ʕ •ᴥ•ʔ
 	nameplate:SetScale(extra)
 end
 
@@ -337,6 +393,19 @@ function NP:PostUpdateAllElements(event)
 	if event == 'NAME_PLATE_UNIT_ADDED' and self.isTarget then
 		NP:SetupTarget(self)
 	end
+end
+
+function NP:ApplyPlateMouse(nameplate)
+	if not nameplate then return end
+
+	local function Silence(frame)
+		if not frame or not frame.EnableMouse then return end
+		frame:EnableMouse(false)
+		for _, child in ipairs({frame:GetChildren()}) do
+			Silence(child)
+		end
+	end
+	Silence(nameplate)
 end
 
 function NP:StylePlate(nameplate)
@@ -371,6 +440,7 @@ function NP:StylePlate(nameplate)
 	NP:StyleFilterEvents(nameplate) -- prepare the watcher
 
 	NP:Construct_ClassPowerTwo(nameplate)
+	NP:ApplyPlateMouse(nameplate)
 
 	NP.Plates[nameplate] = nameplate:GetName()
 
@@ -414,8 +484,20 @@ function NP:UpdatePlate(nameplate, updateBase)
 			NP:Update_Fader(nameplate)
 		end
 	else
-		NP:Update_Health(nameplate, true) -- this will only reset the ouf vars so it won't hold stale threat ones
+		if not E.AwesomeNameplates and nameplate.nameplateAnchor then
+			NP:Update_Health(nameplate)
+			if ElvUF.SuppressLegacyStockBars then
+				ElvUF:SuppressLegacyStockBars(nameplate.nameplateAnchor)
+			end
+			if NP.StockAnchorPlateFrame then
+				NP:StockAnchorPlateFrame(nameplate)
+			end
+		else
+			NP:Update_Health(nameplate, true) -- this will only reset the ouf vars so it won't hold stale threat ones
+		end
 	end
+
+	NP:ApplyPlateMouse(nameplate)
 end
 
 NP.DisableInNotNameOnly = {
@@ -579,7 +661,9 @@ function NP:ConfigurePlates(init)
 	NP.SkipFading = true
 	if not init then -- these only need to happen when changing options
 		for nameplate in pairs(NP.Plates) do
-			nameplate:Size(NP.db.plateSize.width, NP.db.plateSize.height)
+			if E.AwesomeNameplates then
+				nameplate:Size(NP.db.plateSize.width, NP.db.plateSize.height)
+			end
 
 			nameplate.previousType = nil -- keep over the callback, we still need a full update
 			NP:NamePlateCallBack(nameplate, 'NAME_PLATE_UNIT_ADDED')
@@ -603,7 +687,9 @@ function NP:ConfigureAll(init)
 	else
 		NP:PLAYER_REGEN_ENABLED()
 	end
-	NP:UpdateTargetPlate(_G.ElvNP_TargetClassPower)
+	if _G.ElvNP_TargetClassPower then
+		NP:UpdateTargetPlate(_G.ElvNP_TargetClassPower)
+	end
 	NP:Update_StatusBars()
 
 	NP:ConfigurePlates(init) -- keep before toggle static
@@ -653,21 +739,31 @@ function NP:StockAnchorPlateFrame(nameplate)
 	local anchor = nameplate.nameplateAnchor
 	if not anchor or E.AwesomeNameplates then return end
 
-	local width = nameplate.width or NP.db.plateSize.width
-	local height = nameplate.height or NP.db.plateSize.height
 	local db = NP:PlateDB(nameplate)
-	local nameOnly = NP:UsesNameOnlyLayout(nameplate, db)
-	local hook = anchor
+	local bh = (db.health and db.health.height) or 10
+	local width = nameplate.width or 128
+	local height = nameplate.height or bh
 
-	nameplate:ClearAllPoints()
-	nameplate:SetParent(hook)
-	if not nameOnly and anchor.HealthBar then
-		nameplate:SetPoint('BOTTOM', anchor.HealthBar, 'BOTTOM', 0, 0)
-		nameplate:SetFrameLevel((anchor.HealthBar.GetFrameLevel and anchor.HealthBar:GetFrameLevel() or 0) + 2)
-	else
-		nameplate:SetPoint('CENTER', hook, 'CENTER', 0, 0)
+	if ElvUF.SuppressLegacyStockBars then
+		ElvUF:SuppressLegacyStockBars(anchor)
 	end
-	nameplate:Size(width, height)
+
+	-- ʕ •ᴥ•ʔ✿ Stay on WorldFrame so 3D mouseover is not covered by UIParent ✿ ʕ •ᴥ•ʔ
+	nameplate:EnableMouse(false)
+	nameplate:SetParent(anchor)
+	nameplate:SetScale(nameplate.__npExtraScale or 1)
+
+	local hook = anchor.HealthBar or anchor
+	nameplate:ClearAllPoints()
+	nameplate:SetSize(width, height)
+	if hook then
+		nameplate:SetPoint('BOTTOM', hook, 'BOTTOM', 0, 0)
+		if hook.GetFrameLevel then
+			nameplate:SetFrameLevel((hook:GetFrameLevel() or 0) + 2)
+		end
+	else
+		nameplate:SetPoint('CENTER', anchor, 'CENTER', 0, 0)
+	end
 end
 
 function NP:SyncLegacyStockPlate(nameplate)
@@ -683,7 +779,10 @@ function NP:SyncLegacyStockPlate(nameplate)
 
 	local db = NP:PlateDB(nameplate)
 	if anchor and ElvUF.SuppressStockNameplateArt then
-		ElvUF:SuppressStockNameplateArt(anchor, not NP:UsesNameOnlyLayout(nameplate, db))
+		ElvUF:SuppressStockNameplateArt(anchor, false)
+		if not NP:UsesNameOnlyLayout(nameplate, db) and ElvUF.SuppressLegacyStockBars then
+			ElvUF:SuppressLegacyStockBars(anchor)
+		end
 	end
 
 	NP:UpdatePlateSize(nameplate)
@@ -699,24 +798,55 @@ function NP:SyncLegacyStockPlate(nameplate)
 	nameplate:Show()
 end
 
+function NP:LockAwesomePlateSize(anchor)
+	if not anchor or not E.AwesomeNameplates or anchor.__elvLockingSize then return end
+
+	local width = NP.db.plateSize.width or 150
+	local height = NP.db.plateSize.height or 30
+	local aw, ah = anchor:GetWidth(), anchor:GetHeight()
+	if abs(aw - width) < 0.5 and abs(ah - height) < 0.5 then return end
+
+	anchor.__elvLockingSize = true
+	pcall(anchor.SetWidth, anchor, width)
+	pcall(anchor.SetHeight, anchor, height)
+	SetNamePlateSize(width, height)
+	anchor.__elvLockingSize = nil
+end
+
+function NP:HookAwesomePlateSize(anchor)
+	if not anchor or anchor.__elvSizeHooked then return end
+	anchor.__elvSizeHooked = true
+	anchor:HookScript('OnSizeChanged', function(self)
+		if self.__elvLockingSize then return end
+		if self.unitFrame then
+			NP:UpdatePlateSize(self.unitFrame)
+		else
+			NP:LockAwesomePlateSize(self)
+		end
+	end)
+end
+
 function NP:UpdatePlateSize(nameplate)
 	local width, height = NP.db.plateSize.width, NP.db.plateSize.height
 	nameplate.width, nameplate.height = width, height
-	nameplate:Size(width, height)
 
 	local anchor = nameplate.nameplateAnchor
 	if anchor then
-		nameplate:ClearAllPoints()
 		if E.AwesomeNameplates then
-			nameplate:SetAllPoints(anchor)
-			if NP.db.motionType == 'STACKED' then
-				SetNamePlateSize(width, height)
-				anchor:SetWidth(width)
-				anchor:SetHeight(height)
+			-- ʕ •ᴥ•ʔ✿ 3.3.5 grows the native plate in combat; keep ElvUI at plateSize ✿ ʕ •ᴥ•ʔ
+			if nameplate:GetParent() ~= anchor then
+				nameplate:SetParent(anchor)
 			end
+			nameplate:ClearAllPoints()
+			nameplate:Size(width, height)
+			nameplate:Point('CENTER', anchor, 'CENTER')
+			NP:LockAwesomePlateSize(anchor)
+			NP:HookAwesomePlateSize(anchor)
 		else
 			NP:StockAnchorPlateFrame(nameplate)
 		end
+	else
+		nameplate:Size(width, height)
 	end
 
 	NP:ApplyPlatePixelScale(nameplate)
@@ -887,8 +1017,34 @@ function NP:HideInterfaceOptions()
 end
 
 function NP:SetNamePlateSizes()
-	--if InCombatLockdown() then return end
 	SetNamePlateSize(NP.db.plateSize.width, NP.db.plateSize.height)
+	if E.AwesomeNameplates and NP.Plates then
+		for nameplate in pairs(NP.Plates) do
+			NP:UpdatePlateSize(nameplate)
+		end
+	end
+end
+
+function NP:SpawnNameplateDriver()
+	if NP.nameplateDriver then return end
+	if InCombatLockdown() then
+		NP.pendingDriver = true
+		return
+	end
+	NP.nameplateDriver = true
+	NP.pendingDriver = nil
+
+	ElvUF:Spawn('player', 'ElvNP_TargetClassPower')
+
+	_G.ElvNP_TargetClassPower:Size(NP.db.plateSize.personalWidth or 150, NP.db.plateSize.personalHeight or 40)
+	_G.ElvNP_TargetClassPower.frameType = 'TARGET'
+	_G.ElvNP_TargetClassPower:SetAttribute('toggleForVehicle', true)
+	_G.ElvNP_TargetClassPower:ClearAllPoints()
+	_G.ElvNP_TargetClassPower:Point('TOP', E.UIParent, 'BOTTOM', 0, -500)
+
+	ElvUF:SpawnNamePlates('ElvNP_', function(nameplate, event, unit)
+		NP:NamePlateCallBack(nameplate, event, unit)
+	end)
 end
 
 function NP:Initialize()
@@ -925,18 +1081,6 @@ function NP:Initialize()
 	NP.GroupRoles = {}
 	NP.multiplier = 0.35
 
-	ElvUF:Spawn('player', 'ElvNP_TargetClassPower')
-
-	_G.ElvNP_TargetClassPower:Size(NP.db.plateSize.personalWidth or 150, NP.db.plateSize.personalHeight or 40)
-	_G.ElvNP_TargetClassPower.frameType = 'TARGET'
-	_G.ElvNP_TargetClassPower:SetAttribute('toggleForVehicle', true)
-	_G.ElvNP_TargetClassPower:ClearAllPoints()
-	_G.ElvNP_TargetClassPower:Point('TOP', E.UIParent, 'BOTTOM', 0, -500)
-
-	ElvUF:SpawnNamePlates('ElvNP_', function(nameplate, event, unit)
-		NP:NamePlateCallBack(nameplate, event, unit)
-	end)
-
 	NP:RegisterEvent('PLAYER_REGEN_ENABLED')
 	NP:RegisterEvent('PLAYER_REGEN_DISABLED')
 	NP:RegisterEvent('PLAYER_ENTERING_WORLD')
@@ -944,6 +1088,9 @@ function NP:Initialize()
 	NP:RegisterEvent('RAID_ROSTER_UPDATE')
 	NP:RegisterEvent('PARTY_MEMBERS_CHANGED')
 	NP:RegisterEvent('PLAYER_LOGOUT')
+	NP:RegisterEvent('CVAR_UPDATE')
+
+	NP:SpawnNameplateDriver()
 
 	NP:BossMods_RegisterCallbacks()
 	NP:StyleFilterInitialize()

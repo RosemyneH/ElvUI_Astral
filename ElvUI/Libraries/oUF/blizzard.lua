@@ -18,6 +18,41 @@ local offScreenParent = CreateFrame('Frame', nil, UIParent)
 offScreenParent:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", 0, -128)
 offScreenParent:SetFrameLevel(0)
 
+local hooksecurefunc = hooksecurefunc
+
+local function SuppressStockStatusBar(bar, offscreen)
+	if not bar then return end
+
+	if not bar.__elvStockSuppressed then
+		bar.__elvStockSuppressed = true
+		if bar.UnregisterAllEvents then bar:UnregisterAllEvents() end
+		if hooksecurefunc then
+			hooksecurefunc(bar, 'Show', function(self)
+				self:SetAlpha(0)
+				local tex = self.GetStatusBarTexture and self:GetStatusBarTexture()
+				if tex then
+					if tex.SetAlpha then tex:SetAlpha(0) end
+					if tex.SetTexture then tex:SetTexture() end
+				end
+				self:Hide()
+			end)
+		end
+	end
+
+	if offscreen and bar.SetParent then
+		bar:SetParent(offScreenParent)
+	end
+
+	local ntex = bar.GetStatusBarTexture and bar:GetStatusBarTexture()
+	if ntex then
+		if ntex.SetAlpha then ntex:SetAlpha(0) end
+		if ntex.SetTexture then ntex:SetTexture() end
+	end
+	bar:SetAlpha(0)
+	bar:Hide()
+	if bar.EnableMouse then bar:EnableMouse(false) end
+end
+
 local function CacheBlizzNameplateData(nameplate, nameFS)
 	if not nameplate then return end
 	if nameFS and nameFS.GetText then
@@ -76,6 +111,10 @@ end
 
 local function HideStockNameplateArt(nameplate, keepHealthBar)
 	oUF:RefreshLegacyPlateName(nameplate)
+	if nameplate.EnableMouse then nameplate:EnableMouse(false) end
+	if nameplate.SetHitRectInsets then
+		nameplate:SetHitRectInsets(1000, 1000, 1000, 1000)
+	end
 
 	for _, region in ipairs({nameplate:GetRegions()}) do
 		if region then
@@ -87,6 +126,7 @@ local function HideStockNameplateArt(nameplate, keepHealthBar)
 
 	for _, child in ipairs({nameplate:GetChildren()}) do
 		if child and not IsElvNameplateFrame(child) and not child.unitFrame then
+			if child.EnableMouse then child:EnableMouse(false) end
 			if child == nameplate.HealthBar then
 				if not keepHealthBar then
 					child:SetAlpha(0)
@@ -107,6 +147,20 @@ function oUF:SuppressStockNameplateArt(nameplate, keepHealthBar)
 	if not nameplate or _G.ELVUI_HAS_AWESOME_NAMEPLATES then return end
 	if keepHealthBar == nil then keepHealthBar = true end
 	HideStockNameplateArt(nameplate, keepHealthBar)
+end
+
+function oUF:HideStockHealthBarVisual(nameplate)
+	SuppressStockStatusBar(nameplate and nameplate.HealthBar, false)
+end
+
+function oUF:HideStockCastBarVisual(nameplate)
+	SuppressStockStatusBar(nameplate and nameplate.CastBar, true)
+end
+
+function oUF:SuppressLegacyStockBars(nameplate)
+	if not nameplate or _G.ELVUI_HAS_AWESOME_NAMEPLATES then return end
+	oUF:HideStockHealthBarVisual(nameplate)
+	oUF:HideStockCastBarVisual(nameplate)
 end
 
 local function handleFrame(baseName)
@@ -192,17 +246,11 @@ function oUF:DisableBlizzardNamePlate(nameplate)
 		nameplate.__hpR, nameplate.__hpG, nameplate.__hpB = healthBar:GetStatusBarColor()
 	end
 
-	-- ʕ •ᴥ•ʔ✿ Stock 3.3.5 positions the health bar in the world; keep it visible as HP ✿ ʕ •ᴥ•ʔ
+	-- ʕ •ᴥ•ʔ✿ Stock 3.3.5: hide native HP/cast art; ElvUI draws at plateSize ✿ ʕ •ᴥ•ʔ
 	if not _G.ELVUI_HAS_AWESOME_NAMEPLATES then
-		HideStockNameplateArt(nameplate, true)
+		HideStockNameplateArt(nameplate, false)
+		oUF:SuppressLegacyStockBars(nameplate)
 		return
-	end
-
-	local w, h = nameplate:GetWidth(), nameplate:GetHeight()
-	if healthBar then
-		local bw, bh = healthBar:GetWidth(), healthBar:GetHeight()
-		if not w or w < 1 then w = bw end
-		if not h or h < 1 then h = bh end
 	end
 
 	for _, child in ipairs(blizzElements) do
@@ -215,9 +263,6 @@ function oUF:DisableBlizzardNamePlate(nameplate)
 			end
 		end
 	end
-
-	if w and w > 1 then nameplate:SetWidth(w) end
-	if h and h > 1 then nameplate:SetHeight(h) end
 
 	if castBar then
 		castBar:SetParent(offScreenParent)

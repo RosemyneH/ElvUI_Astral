@@ -12,6 +12,12 @@ local argcheck = Private.argcheck
 local error = Private.error
 local print = Private.print
 local unitExists = Private.unitExists
+local InCombatLockdown = InCombatLockdown
+
+local function SetUnitAttribute(frame, key, value)
+	if not frame or InCombatLockdown() then return end
+	pcall(frame.SetAttribute, frame, key, value)
+end
 
 local styles, style = {}
 local callback, objects, headers = {}, {}, {}
@@ -350,6 +356,9 @@ local function initObject(unit, style, styleFunc, header, ...)
 	local num = select('#', ...)
 	for i = 1, num do
 		local object = select(i, ...)
+		if object.__elvMouseCatcher then
+			-- skip leftover catcher
+		else
 		local objectUnit = object.guessUnit or unit
 		local suffix = object:GetAttribute('unitsuffix')
 
@@ -384,17 +393,23 @@ local function initObject(unit, style, styleFunc, header, ...)
 		end
 
 		if(not header) then
-			-- No header means it's a frame created through :Spawn().
-			object.menu = togglemenu
-			object:SetAttribute('*type1', 'target')
-			object:SetAttribute('*type2', 'menu')
+			-- ʕ •ᴥ•ʔ✿ Nameplates are not secure unit buttons; skip click attrs in combat ✿ ʕ •ᴥ•ʔ
+			if object.isNamePlate then
+				if not InCombatLockdown() and object.RegisterForClicks then
+					object.menu = togglemenu
+					object:SetAttribute('*type1', 'target')
+					object:SetAttribute('*type2', 'menu')
+				end
+			else
+				object.menu = togglemenu
+				object:SetAttribute('*type1', 'target')
+				object:SetAttribute('*type2', 'menu')
 
-			-- No need to enable this for *target frames.
-			if(not (unit and unit:match('target') or suffix == 'target')) then
-				object:SetAttribute('toggleForVehicle', true)
+				if(not (unit and unit:match('target') or suffix == 'target')) then
+					object:SetAttribute('toggleForVehicle', true)
+				end
 			end
 
-			-- Other boss and target units are handled by :HandleUnit().
 			if(suffix == 'target') then
 				enableTargetUpdate(object)
 			else
@@ -443,6 +458,7 @@ local function initObject(unit, style, styleFunc, header, ...)
 		-- Make Clique kinda happy
 		_G.ClickCastFrames = ClickCastFrames or {}
 		ClickCastFrames[object] = true
+		end
 	end
 end
 
@@ -814,6 +830,8 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 
 	local function AttachNamePlate(nameplate, unit)
 		if not nameplate then return end
+		if nameplate.EnableMouse then nameplate:EnableMouse(false) end
+		if nameplate.SetHitRectInsets then nameplate:SetHitRectInsets(1000, 1000, 1000, 1000) end
 		if unit then
 			nameplateUnitToFrame[unit] = nameplate
 		end
@@ -823,7 +841,7 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 			nameplate.style = style
 			nameplate.isNamePlate = true
 
-			nameplate.unitFrame = CreateFrame('Button', prefix.."NamePlate"..nameplateCounter(), nameplate)
+			nameplate.unitFrame = CreateFrame('Frame', prefix.."NamePlate"..nameplateCounter(), nameplate)
 			nameplate.unitFrame:EnableMouse(false)
 			nameplate.unitFrame.isNamePlate = true
 			nameplate.unitFrame.nameplateAnchor = nameplate
@@ -838,15 +856,12 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 			Private.UpdateUnits(nameplate.unitFrame, unit)
 		end
 
-		nameplate.unitFrame:SetAttribute('unit', unit)
+		SetUnitAttribute(nameplate.unitFrame, 'unit', unit)
+
+		nameplate.unitFrame:SetParent(nameplate)
 
 		if nameplateCallback then
 			nameplateCallback(nameplate.unitFrame, 'NAME_PLATE_UNIT_ADDED', unit)
-		end
-
-		if hasAwesomeNP then
-			nameplate.unitFrame:ClearAllPoints()
-			nameplate.unitFrame:SetAllPoints(nameplate)
 		end
 
 		if unit then
@@ -861,7 +876,7 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 		if unit then
 			nameplateUnitToFrame[unit] = nil
 		end
-		nameplate.unitFrame:SetAttribute('unit', nil)
+		SetUnitAttribute(nameplate.unitFrame, 'unit', nil)
 		if nameplateCallback then
 			nameplateCallback(nameplate.unitFrame, 'NAME_PLATE_UNIT_REMOVED', unit)
 		end
@@ -871,34 +886,15 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 		if not frame then return end
 		if frame.IsForbidden and frame:IsForbidden() then return end
 		if frame.isNamePlate or (frame.unitFrame and frame.unitFrame.isNamePlate) then return true end
+		if frame.__elvBlizzDisabled then return true end
 		local name = frame.GetName and frame:GetName()
 		if name and name:match('^NamePlate%d+$') then return true end
-		local overlay = select(2, frame:GetRegions())
-		if overlay and overlay.GetTexture and overlay:GetTexture() == NAMEPLATE_BORDER then return true end
-		if frame.__elvBlizzDisabled then return true end
-
-		for i = 1, select('#', frame:GetChildren()) do
-			local child = select(i, frame:GetChildren())
-			if child and child.GetStatusBarTexture then return true end
-		end
-
-		local w, h = frame:GetWidth(), frame:GetHeight()
-		if w and w > 300 then return end
-		if h and h > 80 then return end
-
-		local hasName, hasBar
 		for i = 1, select('#', frame:GetRegions()) do
 			local region = select(i, frame:GetRegions())
-			if region and region.GetText then
-				local text = region:GetText()
-				if text and text ~= '' then hasName = true end
+			if region and region.GetTexture and region:GetTexture() == NAMEPLATE_BORDER then
+				return true
 			end
 		end
-		for i = 1, select('#', frame:GetChildren()) do
-			local child = select(i, frame:GetChildren())
-			if child and child.GetStatusBarTexture then hasBar = true end
-		end
-		if hasName and not hasBar then return true end
 	end
 
 	local function SyncLegacyPlate(unitFrame)
@@ -914,12 +910,17 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 	end
 
 	local function LegacySuppress(frame, unitFrame)
+		if frame and frame.EnableMouse then frame:EnableMouse(false) end
+		if unitFrame and unitFrame.EnableMouse then unitFrame:EnableMouse(false) end
 		local NP = _G.ElvUI and _G.ElvUI[1] and _G.ElvUI[1].NamePlates
-		local keepHealth = true
-		if NP and unitFrame then
-			keepHealth = not NP:UsesNameOnlyLayout(unitFrame, NP:PlateDB(unitFrame))
+		local nameOnly = NP and unitFrame and NP:UsesNameOnlyLayout(unitFrame, NP:PlateDB(unitFrame))
+		oUF:SuppressStockNameplateArt(frame, false)
+		if not nameOnly then
+			oUF:SuppressLegacyStockBars(frame)
+			if NP and NP.StockAnchorPlateFrame then
+				NP:StockAnchorPlateFrame(unitFrame)
+			end
 		end
-		oUF:SuppressStockNameplateArt(frame, keepHealth)
 	end
 
 	local function ResolvePlateUnit(plate)
@@ -972,7 +973,7 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 		if plate then
 			oUF:RefreshLegacyPlateName(plate)
 			unitFrame.unitName = plate.__elvBlizzName or unitFrame.unitName
-			oUF:SuppressStockNameplateArt(plate)
+			oUF:SuppressStockNameplateArt(plate, false)
 		end
 
 		local mn, mx, val, r, g, b
@@ -1002,20 +1003,12 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 		else
 			health:SetStatusBarColor(0.8, 0.2, 0.2)
 		end
-		-- ʕ •ᴥ•ʔ✿ Keep the native bar frame at alpha 1 so a child overlay stays visible ✿ ʕ •ᴥ•ʔ
-		if hb then
-			hb:SetAlpha(1)
-			local ntex = hb.GetStatusBarTexture and hb:GetStatusBarTexture()
-			if ntex and ntex.SetAlpha then ntex:SetAlpha(0) end
-			local etex = health.GetStatusBarTexture and health:GetStatusBarTexture()
-			local path = etex and etex.GetTexture and etex:GetTexture()
-			if path then hb:SetStatusBarTexture(path) end
-			health:SetAlpha(1)
-			health:Show()
-		else
-			health:SetAlpha(1)
-			health:Show()
+		-- ʕ •ᴥ•ʔ✿ Native bar is the world-space hook only; drawing it doubles length ✿ ʕ •ᴥ•ʔ
+		if plate then
+			oUF:SuppressLegacyStockBars(plate)
 		end
+		health:SetAlpha(1)
+		health:Show()
 		if NP and NP.EvalLegacyTag and health.Text then
 			local db = NP:PlateDB(unitFrame)
 			local hide = NP.UsesNameOnlyLayout and NP:UsesNameOnlyLayout(unitFrame, db)
@@ -1049,7 +1042,7 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 								nameplateUnitToFrame[frame.unitFrame.unit] = nil
 							end
 							Private.UpdateUnits(frame.unitFrame, unit)
-							frame.unitFrame:SetAttribute('unit', unit)
+							SetUnitAttribute(frame.unitFrame, 'unit', unit)
 							if nameplateCallback then
 								nameplateCallback(frame.unitFrame, 'NAME_PLATE_UNIT_ADDED', unit)
 							end
@@ -1123,18 +1116,14 @@ function oUF:SpawnNamePlates(namePrefix, nameplateCallback, nameplateCVars)
 	end)
 
 	if not hasAwesomeNP then
+		local scanner = CreateFrame('Frame', 'oUF_ElvNPLegacyScanner')
 		local throttle = 0
-		local function OnWorldUpdate(_, elapsed)
+		scanner:SetScript('OnUpdate', function(_, elapsed)
 			throttle = throttle + elapsed
 			if throttle < 0.1 then return end
 			throttle = 0
 			LegacyScan()
-		end
-		if WorldFrame:GetScript('OnUpdate') then
-			WorldFrame:HookScript('OnUpdate', OnWorldUpdate)
-		else
-			WorldFrame:SetScript('OnUpdate', OnWorldUpdate)
-		end
+		end)
 	end
 
 	if(IsLoggedIn()) then

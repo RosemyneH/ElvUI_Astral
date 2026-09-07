@@ -36,12 +36,7 @@
 	<Script file="elements\classpower.lua"/>
 
 	<!-- Clique support -->
-	<Button name="oUF_ClickCastUnitTemplate" virtual="true" inherits="SecureUnitButtonTemplate, SecureHandlerEnterLeaveTemplate">
-		<Attributes>
-			<Attribute name="_onenter" type="string" value="local snippet = self:GetAttribute('clickcast_onenter'); if snippet then self:Run(snippet) end"/>
-			<Attribute name="_onleave" type="string" value="local snippet = self:GetAttribute('clickcast_onleave'); if snippet then self:Run(snippet) end"/>
-		</Attributes>
-	</Button>
+	<Button name="oUF_ClickCastUnitTemplate" virtual="true" inherits="SecureUnitButtonTemplate"/>
 
 	<!--
 		Sub-object as a child of the parent unit frame:

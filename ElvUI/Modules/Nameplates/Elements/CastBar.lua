@@ -123,6 +123,7 @@ end
 
 function NP:Construct_Castbar(nameplate)
 	local castbar = CreateFrame('StatusBar', nameplate:GetName()..'Castbar', nameplate)
+	castbar:EnableMouse(false)
 	castbar:SetParent(nameplate)
 	castbar:CreateBackdrop('Transparent', nil, nil, nil, nil, true, true)
 	castbar:SetStatusBarTexture(LSM:Fetch('statusbar', NP.db.statusbar))

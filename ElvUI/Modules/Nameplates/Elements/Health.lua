@@ -2,6 +2,7 @@ local E, L, V, P, G = unpack(ElvUI)
 local NP = E:GetModule('NamePlates')
 local UF = E:GetModule('UnitFrames')
 local LSM = E.Libs.LSM
+local ElvUF = E.oUF
 
 local ipairs = ipairs
 local unpack = unpack
@@ -75,11 +76,18 @@ end
 
 function NP:Construct_Health(nameplate)
 	local Health = CreateFrame('StatusBar', nameplate:GetName()..'Health', nameplate)
+	Health:EnableMouse(false)
 	Health:SetParent(nameplate)
 	Health:CreateBackdrop('Transparent', nil, nil, nil, nil, true, true)
 	Health:SetStatusBarTexture(LSM:Fetch('statusbar', NP.db.statusbar))
 	Health.considerSelectionInCombatHostile = true
 	Health.UpdateColor = NP.Health_UpdateColor
+	Health.PostUpdate = function(element)
+		local owner = element.__owner
+		if owner and owner.nameplateAnchor and not E.AwesomeNameplates and ElvUF.SuppressLegacyStockBars then
+			ElvUF:SuppressLegacyStockBars(owner.nameplateAnchor)
+		end
+	end
 
 	NP.StatusBars[Health] = true
 
@@ -128,6 +136,7 @@ function NP:Update_Health(nameplate, skipUpdate)
 			nameplate:EnableElement('Health')
 		end
 
+		nameplate.Health:ClearAllPoints()
 		nameplate.Health:Point('CENTER')
 		nameplate.Health:Point('LEFT')
 		nameplate.Health:Point('RIGHT')

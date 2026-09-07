@@ -96,6 +96,7 @@ end
 
 function NP:Construct_Power(nameplate)
 	local Power = CreateFrame('StatusBar', nameplate:GetName()..'Power', nameplate)
+	Power:EnableMouse(false)
 	Power:CreateBackdrop('Transparent', nil, nil, nil, nil, true, true)
 
 	NP.StatusBars[Power] = true
