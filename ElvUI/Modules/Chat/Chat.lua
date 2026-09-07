@@ -378,6 +378,9 @@ function CH:StyleChat(frame)
 	end
 
 	editbox:HookScript("OnTextChanged", OnTextChanged)
+	editbox:HookScript("OnEnterPressed", function(eb)
+		CH:ChatEdit_OnEnterPressed(eb)
+	end)
 	self:SecureHook(editbox, "AddHistoryLine", "ChatEdit_AddHistory")
 
 	editbox:HookScript("OnEditFocusGained", function(editBox)
@@ -1760,14 +1763,6 @@ function CH:ChatEdit_OnEnterPressed(editBox)
 	end
 end
 
-function CH:ChatEdit_SendText(editBox, addHistory)
-	if IsBlockedAscensionCommand(editBox:GetText()) then
-		editBox:SetText("")
-		return
-	end
-	return self.hooks.ChatEdit_SendText(editBox, addHistory)
-end
-
 function CH:SetChatFont(dropDown, chatFrame, fontSize)
 	if not chatFrame then
 		chatFrame = FCF_GetCurrentChatFrame()
@@ -2286,8 +2281,7 @@ function CH:Initialize()
 	self:UpdateAnchors()
 	self:Panels_ColorUpdate()
 
-	self:RawHook("ChatEdit_SendText", true)
-	self:SecureHook("ChatEdit_OnEnterPressed")
+	-- ʕ •ᴥ•ʔ✿ Do not hook ChatEdit_SendText / ChatEdit_OnEnterPressed; that taints /cast ✿ ʕ •ᴥ•ʔ
 
 	if not CH.SendChatMessageHooked then
 		CH.SendChatMessageHooked = true
