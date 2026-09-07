@@ -118,6 +118,7 @@ Tags.SharedEvents.QUEST_LOG_UPDATE = true
 ------------------------------------------------------------------------
 
 local function UnitEffectiveLevel(unit)
+	if not unit or not UnitExists(unit) then return -1 end
 	return UnitLevel(unit)
 end
 E.TagFunctions.UnitEffectiveLevel = UnitEffectiveLevel
@@ -476,6 +477,7 @@ E:AddTag('mana:max:shortvalue', 'UNIT_MAXPOWER', function(unit)
 end)
 
 E:AddTag('difficultycolor', 'UNIT_LEVEL PLAYER_LEVEL_UP', function(unit)
+	if not unit or not UnitExists(unit) then return '|cFFcccccc' end
 	local color = GetQuestDifficultyColor(UnitEffectiveLevel(unit))
 	return Hex(color)
 end)
@@ -512,6 +514,7 @@ E:AddTag('reactioncolor', 'UNIT_NAME_UPDATE UNIT_FACTION', function(unit)
 end)
 
 E:AddTag('smartlevel', 'UNIT_LEVEL PLAYER_LEVEL_UP', function(unit)
+	if not unit or not UnitExists(unit) then return end
 	local level = UnitEffectiveLevel(unit)
 	if level == UnitEffectiveLevel('player') then
 		return nil

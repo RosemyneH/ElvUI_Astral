@@ -145,6 +145,7 @@ function E:SetSmoothingAmount(amount)
 end
 
 function E:SetSmoothing(bar, enable)
+	if not bar then return end
 	if enable then
 		SmoothBar(bar)
 	else
