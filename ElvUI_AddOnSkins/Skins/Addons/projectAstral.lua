@@ -1430,7 +1430,7 @@ S:AddCallbackForAddon("ProjectAstral", "ProjectAstral", function()
 			SkinPopup(frame.tierPopup)
 			SkinPopup(frame.filterPopup)
 
-			if not frame.elvPADepositGems then
+			if not frame.elvPADepositGems and not frame.qolDepositGems then
 				frame:SetHeight((frame:GetHeight() or 470) + 40)
 				local btn = CreateFrame("Button", nil, frame)
 				S:HandleButton(btn, true)
