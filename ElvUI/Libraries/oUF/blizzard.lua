@@ -20,6 +20,14 @@ offScreenParent:SetFrameLevel(0)
 
 local hooksecurefunc = hooksecurefunc
 
+local function WorldPlateName(text)
+	local engine = _G.ElvUI and _G.ElvUI[1]
+	if engine and engine.ReplaceGMWorldName and text and text ~= "" then
+		return engine:ReplaceGMWorldName(text)
+	end
+	return text
+end
+
 local function SuppressStockStatusBar(bar, offscreen)
 	if not bar then return end
 
@@ -56,7 +64,7 @@ end
 local function CacheBlizzNameplateData(nameplate, nameFS)
 	if not nameplate then return end
 	if nameFS and nameFS.GetText then
-		local text = nameFS:GetText()
+		local text = WorldPlateName(nameFS:GetText())
 		if text and text ~= '' then
 			nameplate.__elvBlizzName = text
 		end
@@ -75,7 +83,7 @@ function oUF:RefreshLegacyPlateName(nameplate)
 
 	local nameFS = nameplate.blizzName
 	if nameFS and nameFS.GetText then
-		local text = nameFS:GetText()
+		local text = WorldPlateName(nameFS:GetText())
 		if text and text ~= '' then
 			nameplate.__elvBlizzName = text
 			if nameFS.GetTextColor then
@@ -88,7 +96,7 @@ function oUF:RefreshLegacyPlateName(nameplate)
 	for i = 1, select('#', nameplate:GetRegions()) do
 		local region = select(i, nameplate:GetRegions())
 		if region and region.GetText then
-			local text = region:GetText()
+			local text = WorldPlateName(region:GetText())
 			if text and text ~= '' then
 				nameplate.__elvBlizzName = text
 				if region.GetTextColor then

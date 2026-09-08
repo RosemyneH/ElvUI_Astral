@@ -28,7 +28,7 @@ end
 
 function E:GetGMNameIcon()
 	if not gmNameIcon then
-		gmNameIcon = self:TextureString(self.Media.Textures.Astral, ":24:24:0:0|t ")
+		gmNameIcon = "<GM> "
 	end
 	return gmNameIcon
 end
