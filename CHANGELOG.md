@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.39](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.39) (2026-09-07)
+
+### Features
+
+* Nameplates restore quest icons, portraits, power, runes, boss-mod auras, title tags, and PvP/threat marks
+* Auto-vendor grays when opening a merchant, with an optional detailed chat report
+* Party/raid leaders can broadcast instance resets to chat
+
+### Fixes
+
+* World GM nametags show `<GM>` instead of stacking the Astral texture
+
 ## [7.38](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.38) (2026-09-07)
 
 ### Features
