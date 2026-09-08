@@ -1255,8 +1255,12 @@ function B:GetGraysInfo()
 	return #itemList, value
 end
 
-function B:VendorGrays(delete)
+function B:VendorGrays(delete, auto)
 	if self.SellFrame:IsShown() then return end
+
+	if auto then
+		B:GetGraysInfo()
+	end
 
 	local itemCount = #self.SellFrame.Info.itemList
 	if itemCount == 0 then return end
@@ -1264,6 +1268,7 @@ function B:VendorGrays(delete)
 	local info = self.SellFrame.Info
 
 	info.delete = delete or false
+	info.details = auto and E.db.general.vendorGraysDetails or false
 	info.SellTimer = 0
 	info.ProgressMax = itemCount
 	info.ProgressTimer = (itemCount - 1) * info.SellInterval

@@ -880,6 +880,29 @@ E.Options.args.general = {
 					desc = L["Automatically select greed or disenchant (when available) on green quality items. This will only work if you are the max level."],
 					disabled = function() return not E.private.general.lootRoll end
 				},
+				vendorGrays = {
+					order = 5,
+					type = "toggle",
+					name = L["Vendor Grays"],
+					desc = L["Automatically vendor gray items when visiting a vendor."]
+				},
+				vendorGraysDetails = {
+					order = 6,
+					type = "toggle",
+					name = L["Vendor Gray Detailed Report"],
+					desc = L["Print each gray item to chat as it is sold when auto vendoring."],
+					disabled = function() return not E.db.general.vendorGrays end
+				},
+				broadcastInstanceReset = {
+					order = 7,
+					type = "toggle",
+					name = L["Broadcast on Instance Reset"],
+					desc = L["Will announce when instance is reset."],
+					set = function(info, value)
+						E.db.general[info[#info]] = value
+						Misc:ToggleInstanceResetAnnounce()
+					end
+				},
 				questAnnounce = {
 					order = 10,
 					type = "group",

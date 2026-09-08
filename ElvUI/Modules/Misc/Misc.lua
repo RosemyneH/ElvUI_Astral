@@ -27,6 +27,8 @@ local HideRepairCursor = HideRepairCursor
 local InCombatLockdown = InCombatLockdown
 local IsInGuild = IsInGuild
 local IsInInstance = IsInInstance
+local IsPartyLeader = IsPartyLeader
+local IsRaidLeader = IsRaidLeader
 local IsShiftKeyDown = IsShiftKeyDown
 local LeaveParty = LeaveParty
 local PickupInventoryItem = PickupInventoryItem
@@ -175,6 +177,12 @@ do
 	end
 end
 
+function M:MERCHANT_SHOW()
+	if IsShiftKeyDown() or not E.db.general.vendorGrays then return end
+
+	Bags:VendorGrays(false, true)
+end
+
 function M:DisbandRaidGroup()
 	if InCombatLockdown() then return end -- Prevent user error in combat
 
@@ -250,16 +258,52 @@ function M:ForceCVars(event)
 	end
 end
 
+do
+	local format = string.format
+	local gsub = string.gsub
+	local strmatch = string.match
+
+	local INSTANCE_RESET_SUCCESS = INSTANCE_RESET_SUCCESS
+
+	function M:InstanceResetAnnounce(_, text)
+		if not E.db.general.broadcastInstanceReset or not text or not INSTANCE_RESET_SUCCESS then return end
+		if not (IsPartyLeader() or IsRaidLeader()) then return end
+
+		local instance = strmatch(text, gsub(INSTANCE_RESET_SUCCESS, "%%s", "(.+)"))
+		if not instance then return end
+
+		local message = format(L["%s has been reset"], instance)
+		local _, instanceType = IsInInstance()
+		local battleground = instanceType == "pvp"
+
+		if GetNumRaidMembers() > 0 then
+			SendChatMessage(message, battleground and "BATTLEGROUND" or "RAID")
+		elseif GetNumPartyMembers() > 0 then
+			SendChatMessage(message, battleground and "BATTLEGROUND" or "PARTY")
+		end
+	end
+
+	function M:ToggleInstanceResetAnnounce()
+		if E.db.general.broadcastInstanceReset then
+			self:RegisterEvent("CHAT_MSG_SYSTEM", "InstanceResetAnnounce")
+		else
+			self:UnregisterEvent("CHAT_MSG_SYSTEM", "InstanceResetAnnounce")
+		end
+	end
+end
+
 function M:Initialize()
 	self:LoadRaidMarker()
 	self:LoadLoot()
 	self:LoadLootRoll()
 	self:LoadChatBubbles()
 	self:LoadQuestAnnounce()
+	self:ToggleInstanceResetAnnounce()
 
 	self:ToggleErrorHandling()
 	self:ToggleInterruptAnnounce()
 
+	self:RegisterEvent("MERCHANT_SHOW")
 	self:RegisterEvent("CHAT_MSG_BG_SYSTEM_HORDE", "PVPMessageEnhancement")
 	self:RegisterEvent("CHAT_MSG_BG_SYSTEM_ALLIANCE", "PVPMessageEnhancement")
 	self:RegisterEvent("CHAT_MSG_BG_SYSTEM_NEUTRAL", "PVPMessageEnhancement")
