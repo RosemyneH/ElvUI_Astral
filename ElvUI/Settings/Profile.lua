@@ -17,8 +17,11 @@ P.general = {
 		every = 0,
 		debug = false
 	},
+	broadcastInstanceReset = false,
 	autoRoll = false,
 	autoAcceptInvite = false,
+	vendorGrays = false,
+	vendorGraysDetails = false,
 	bottomPanel = true,
 	hideErrorFrame = true,
 	enhancedPvpMessages = true,
@@ -391,7 +394,18 @@ P.nameplates = {
 	threat = {
 		goodScale = 0.8,
 		badScale = 1.2,
-		useThreatColor = true
+		useThreatColor = true,
+		indicator = false,
+	},
+	bossMods = {
+		enable = true,
+		anchorPoint = "BOTTOM",
+		growthDirection = "RIGHT_UP",
+		size = 34,
+		height = 24,
+		spacing = 1,
+		yOffset = -5,
+		xOffset = 0,
 	},
 	filters = {
 		ElvUI_Boss = {triggers = {enable = false}},
@@ -412,6 +426,15 @@ P.nameplates = {
 				spacing = 5,
 				xOffset = 0,
 				yOffset = 0
+			},
+			classpower = {
+				enable = true,
+				classColor = false,
+				height = 7,
+				sortDirection = "NONE",
+				width = 130,
+				xOffset = 0,
+				yOffset = 10,
 			},
 		},
 		FRIENDLY_PLAYER = {
@@ -825,6 +848,18 @@ P.nameplates = {
 				xOffset = 10,
 				yOffset = 0
 			},
+			questIcon = {
+				enable = true,
+				hideIcon = false,
+				position = "RIGHT",
+				textPosition = "BOTTOMRIGHT",
+				size = 20,
+				xOffset = 0,
+				yOffset = 0,
+				font = "PT Sans Narrow",
+				fontOutline = "OUTLINE",
+				fontSize = 12
+			},
 			raidTargetIndicator = {
 				size = 24,
 				position = "LEFT",
@@ -979,6 +1014,18 @@ P.nameplates = {
 				xOffset = 10,
 				yOffset = 0
 			},
+			questIcon = {
+				enable = true,
+				hideIcon = false,
+				position = "RIGHT",
+				textPosition = "BOTTOMRIGHT",
+				size = 20,
+				xOffset = 0,
+				yOffset = 0,
+				font = "PT Sans Narrow",
+				fontOutline = "OUTLINE",
+				fontSize = 12
+			},
 			raidTargetIndicator = {
 				size = 24,
 				position = "LEFT",
@@ -996,6 +1043,63 @@ P.nameplates = {
 		}
 	}
 }
+
+do
+	local NP_Title = {
+		enable = false,
+		format = "[npctitle]",
+		position = "TOP",
+		parent = "Nameplate",
+		xOffset = 0,
+		yOffset = -14,
+		font = "PT Sans Narrow",
+		fontOutline = "OUTLINE",
+		fontSize = 11,
+	}
+	local NP_Portrait = {
+		enable = false,
+		position = "RIGHT",
+		classicon = true,
+		height = 28,
+		width = 28,
+		xOffset = 3,
+		yOffset = -5,
+	}
+	local NP_Power = {
+		enable = false,
+		width = 150,
+		height = 8,
+		xOffset = 0,
+		yOffset = -10,
+		hideWhenEmpty = false,
+		useClassColor = false,
+	}
+	local NP_PvPIcon = {
+		enable = false,
+		showBadge = true,
+		position = "RIGHT",
+		size = 36,
+		xOffset = 0,
+		yOffset = 0,
+	}
+
+	for _, unit in ipairs({"FRIENDLY_PLAYER", "ENEMY_PLAYER", "FRIENDLY_NPC", "ENEMY_NPC"}) do
+		local data = P.nameplates.units[unit]
+		data.title = CopyTable(NP_Title)
+		data.portrait = CopyTable(NP_Portrait)
+		data.power = CopyTable(NP_Power)
+		data.pvpindicator = CopyTable(NP_PvPIcon)
+		if unit == "FRIENDLY_PLAYER" or unit == "ENEMY_PLAYER" then
+			data.markTanks = true
+			if not data.name.format then
+				data.name.format = "[classcolor][name]"
+			end
+		end
+		if unit == "FRIENDLY_NPC" or unit == "ENEMY_NPC" then
+			data.level.format = "[difficultycolor][level][shortclassification]"
+		end
+	end
+end
 
 --Auras
 P.auras = {

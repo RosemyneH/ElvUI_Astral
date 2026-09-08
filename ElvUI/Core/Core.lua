@@ -1086,10 +1086,17 @@ function E:DBConversions()
 		E.db.general.cropIcon = (cropIcon and 2) or 0
 	end
 
-	--Vendor Greys option removed
-	if E.db.bags.vendorGrays then
-		E.db.general.vendorGrays = nil
-		E.db.general.vendorGraysDetails = nil
+	--Vendor Greys option moved to general
+	if E.db.bags.vendorGrays ~= nil then
+		if E.db.general.vendorGrays == nil then
+			if type(E.db.bags.vendorGrays) == "table" then
+				E.db.general.vendorGrays = E.db.bags.vendorGrays.enable
+				E.db.general.vendorGraysDetails = E.db.bags.vendorGrays.details
+			else
+				E.db.general.vendorGrays = E.db.bags.vendorGrays
+			end
+		end
+		E.db.bags.vendorGrays = nil
 	end
 
 	--Heal Prediction is now a table instead of a bool
@@ -1126,6 +1133,22 @@ function E:DBConversions()
 	if plateSize and plateSize.width and not plateSize.friendlyWidth then
 		E:CopyTable(self.db.nameplates, P.nameplates)
 	end
+
+	for _, unit in ipairs({"FRIENDLY_NPC", "ENEMY_NPC", "FRIENDLY_PLAYER", "ENEMY_PLAYER"}) do
+		local data = E.db.nameplates.units[unit]
+		if data and not data.questIcon then
+			E:CopyDefaults(data, P.nameplates.units[unit])
+		end
+	end
+
+	if E.db.nameplates.units.TARGET then
+		E:CopyDefaults(E.db.nameplates.units.TARGET, P.nameplates.units.TARGET)
+	end
+
+	if E.db.nameplates and not E.db.nameplates.bossMods then
+		E:CopyDefaults(E.db.nameplates, P.nameplates)
+	end
+
 	if self.global then
 		self.global.forceStockNameplates = true
 	end

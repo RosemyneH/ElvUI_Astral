@@ -3338,8 +3338,116 @@ local function GetUnitSettings(unit, name)
 				}
 			}
 		}
+		group.args.questIcon = {
+			order = 9,
+			type = "group",
+			name = L["Quest Icon"],
+			get = function(info) return E.db.nameplates.units[unit].questIcon[info[#info]] end,
+			set = function(info, value) E.db.nameplates.units[unit].questIcon[info[#info]] = value NP:ConfigureAll() end,
+			args = {
+				header = {
+					order = 1,
+					type = "header",
+					name = L["Quest Icon"]
+				},
+				enable = {
+					order = 2,
+					type = "toggle",
+					name = L["Enable"]
+				},
+				hideIcon = {
+					order = 3,
+					type = "toggle",
+					name = L["Hide Icon"],
+					disabled = function() return not E.db.nameplates.units[unit].questIcon.enable end
+				},
+				position = {
+					order = 4,
+					type = "select",
+					name = L["Position"],
+					values = {
+						["LEFT"] = L["Left"],
+						["RIGHT"] = L["Right"],
+						["TOP"] = L["Top"],
+						["BOTTOM"] = L["Bottom"],
+						["CENTER"] = L["Center"]
+					},
+					disabled = function() return not E.db.nameplates.units[unit].questIcon.enable end
+				},
+				spacer = {
+					order = 5,
+					type = "description",
+					name = " "
+				},
+				size = {
+					order = 6,
+					type = "range",
+					name = L["Size"],
+					min = 12, max = 64, step = 1,
+					disabled = function() return not E.db.nameplates.units[unit].questIcon.enable end
+				},
+				xOffset = {
+					order = 7,
+					type = "range",
+					name = L["X-Offset"],
+					min = -100, max = 100, step = 1,
+					disabled = function() return not E.db.nameplates.units[unit].questIcon.enable end
+				},
+				yOffset = {
+					order = 8,
+					type = "range",
+					name = L["Y-Offset"],
+					min = -100, max = 100, step = 1,
+					disabled = function() return not E.db.nameplates.units[unit].questIcon.enable end
+				},
+				fontGroup = {
+					order = 9,
+					type = "group",
+					name = "",
+					inline = true,
+					disabled = function() return not E.db.nameplates.units[unit].questIcon.enable end,
+					args = {
+						font = {
+							order = 1,
+							type = "select",
+							dialogControl = "LSM30_Font",
+							name = L["Font"],
+							values = AceGUIWidgetLSMlists.font
+						},
+						fontSize = {
+							order = 2,
+							type = "range",
+							name = L["Font Size"],
+							min = 4, max = 60, step = 1
+						},
+						fontOutline = {
+							order = 3,
+							type = "select",
+							name = L["Font Outline"],
+							values = C.Values.FontFlags
+						},
+						textPosition = {
+							order = 4,
+							type = "select",
+							name = L["Text Position"],
+							values = {
+								TOP = "TOP",
+								LEFT = "LEFT",
+								BOTTOM = "BOTTOM",
+								CENTER = "CENTER",
+								TOPLEFT = "TOPLEFT",
+								BOTTOMLEFT = "BOTTOMLEFT",
+								BOTTOMRIGHT = "BOTTOMRIGHT",
+								RIGHT = "RIGHT",
+								TOPRIGHT = "TOPRIGHT"
+							}
+						}
+					}
+				}
+			}
+		}
 		group.args.iconFrame = {
-			order = 8,
+			order = 10,
 			type = "group",
 			name = L["Icon Frame"],
 			get = function(info) return E.db.nameplates.units[unit].iconFrame[info[#info]] end,

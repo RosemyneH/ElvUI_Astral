@@ -29,7 +29,14 @@ local UnitIsFriend = UnitIsFriend
 local UnitIsPlayer = UnitIsPlayer
 local UnitIsUnit = UnitIsUnit
 local UnitReaction = UnitReaction
-local UnitName = UnitName
+local function UnitName(unit)
+	if not unit then return end
+	local name, realm = _G.UnitName(unit)
+	if name then
+		name = E:ReplaceGMWorldName(name)
+	end
+	return name, realm
+end
 local WorldFrame = WorldFrame
 local WorldGetChildren = WorldFrame.GetChildren
 local WorldGetNumChildren = WorldFrame.GetNumChildren
@@ -333,6 +340,48 @@ function NP:GetGUIDByName(name, unitType)
 	end
 end
 
+NP.PlateGUID = NP.PlateGUID or {}
+
+function NP:ResolvePlateUnit(frame)
+	if frame.unit and UnitExists(frame.unit) and UnitName(frame.unit) == frame.UnitName then
+		return frame.unit
+	end
+
+	if UnitExists("target") and UnitName("target") == frame.UnitName and self:GetUnitTypeFromUnit("target") == frame.UnitType then
+		return "target"
+	end
+
+	if UnitExists("mouseover") and UnitName("mouseover") == frame.UnitName and self:GetUnitTypeFromUnit("mouseover") == frame.UnitType then
+		return "mouseover"
+	end
+
+	local groupUnit = self:GetUnitByName(frame, frame.UnitType)
+	if groupUnit and UnitExists(groupUnit) and UnitName(groupUnit) == frame.UnitName then
+		return groupUnit
+	end
+end
+
+function NP:UpdatePlateGUID(frame)
+	if frame.guid then
+		self.PlateGUID[frame.guid] = frame
+	elseif frame.UnitName and frame.UnitType then
+		local guid = self:GetGUIDByName(frame.UnitName, frame.UnitType)
+		if guid then
+			frame.guid = guid
+			self.PlateGUID[guid] = frame
+		end
+	end
+end
+
+function NP:GetPlateByGUID(guid)
+	if not guid then return end
+	return self.PlateGUID[guid] or self:SearchNameplateByGUID(guid)
+end
+
+function NP:PlateDB(frame)
+	return self.db.units[frame.UnitType]
+end
+
 function NP:OnShow(isConfig, dontHideHighlight)
 	local frame = self.UnitFrame
 	NP:CheckRaidIcon(frame)
@@ -341,7 +390,7 @@ function NP:OnShow(isConfig, dontHideHighlight)
 		NP.VisiblePlates[frame] = 1
 	end
 
-	frame.UnitName = gsub(frame.oldName:GetText() or "", FSPAT, "")
+	frame.UnitName = E:ReplaceGMWorldName(gsub(frame.oldName:GetText() or "", FSPAT, ""))
 	local reaction, unitType = NP:GetUnitInfo(frame)
 	local oldUnitType = frame.UnitType
 	frame.UnitType = unitType
@@ -357,6 +406,7 @@ function NP:OnShow(isConfig, dontHideHighlight)
 	end
 
 	frame.UnitClass = NP:UnitClass(frame, unitType)
+	NP:UpdatePlateGUID(frame)
 
 	if unitType ~= oldUnitType or isConfig then
 		NP:Update_HealthBar(frame)
@@ -378,6 +428,9 @@ function NP:OnShow(isConfig, dontHideHighlight)
 		NP:Configure_Elite(frame)
 		NP:Configure_Highlight(frame)
 		NP:Configure_IconFrame(frame)
+		if NP.Configure_QuestIcons then NP:Configure_QuestIcons(frame) end
+		if NP.Configure_Portrait then NP:Configure_Portrait(frame) end
+		if NP.Configure_Power then NP:Configure_Power(frame) end
 	end
 
 	frame.CutawayHealth:Hide()
@@ -463,6 +516,9 @@ function NP:OnHide(isConfig, dontHideHighlight)
 	frame.TopLevelFrame = nil
 	frame.TopOffset = nil
 	frame.ThreatReaction = nil
+	if frame.guid and NP.PlateGUID then
+		NP.PlateGUID[frame.guid] = nil
+	end
 	frame.guid = nil
 	frame.alpha = nil
 	frame.isAlphaChanged = nil
@@ -539,6 +595,15 @@ function NP:UpdateElement_All(frame, noTargetFrame, filterIgnore)
 	end
 
 	self:Update_IconFrame(frame)
+	if self.Update_QuestIcons then self:Update_QuestIcons(frame) end
+	if self.Update_Tags then self:Update_Tags(frame) end
+	if self.Update_Portrait then self:Update_Portrait(frame) end
+	if self.Update_Power then self:Update_Power(frame) end
+	if self.Update_PvPIndicator then self:Update_PvPIndicator(frame) end
+	if self.Update_PVPRole then self:Update_PVPRole(frame) end
+	if self.Update_ThreatIndicator then self:Update_ThreatIndicator(frame) end
+	if self.Update_BossMods then self:Update_BossMods(frame) end
+	if self.Update_Runes then self:Update_Runes(frame) end
 
 	if not filterIgnore then
 		self:StyleFilterUpdate(frame, "UpdateElement_All")
@@ -592,6 +657,16 @@ function NP:OnCreated(frame)
 	unitFrame.HealerIcon = self:Construct_HealerIcon(unitFrame)
 	unitFrame.CPoints = self:Construct_CPoints(unitFrame)
 	unitFrame.IconFrame = self:Construct_IconFrame(unitFrame)
+	if self.Construct_Title then unitFrame.Title = self:Construct_Title(unitFrame) end
+	if self.Construct_Portrait then unitFrame.Portrait = self:Construct_Portrait(unitFrame) end
+	if self.Construct_Power then unitFrame.Power = self:Construct_Power(unitFrame) end
+	if self.Construct_PvPIndicator then unitFrame.PvPIndicator = self:Construct_PvPIndicator(unitFrame) end
+	if self.Construct_PvPClassificationIndicator then unitFrame.PvPClassificationIndicator = self:Construct_PvPClassificationIndicator(unitFrame) end
+	if self.Construct_PVPRole then unitFrame.PVPRole = self:Construct_PVPRole(unitFrame) end
+	if self.Construct_ThreatIndicator then unitFrame.ThreatIndicator = self:Construct_ThreatIndicator(unitFrame) end
+	if self.Construct_BossMods then unitFrame.BossMods = self:Construct_BossMods(unitFrame) end
+	if self.Construct_Runes then unitFrame.Runes = self:Construct_Runes(unitFrame) end
+	if self.Construct_QuestIcons then unitFrame.QuestIcons = self:Construct_QuestIcons(unitFrame) end
 	self:Construct_Glow(unitFrame)
 
 	self:QueueObject(Health)
@@ -611,6 +686,13 @@ function NP:OnCreated(frame)
 	unitFrame.oldCastBar.Shield = CastBarShield
 	unitFrame.oldCastBar.Icon = CastBarIcon
 	unitFrame.oldName = Name
+	local setPlateName = Name.SetText
+	Name.SetText = function(self, text)
+		if type(text) == "string" then
+			text = E:ReplaceGMWorldName(text)
+		end
+		return setPlateName(self, text)
+	end
 	unitFrame.oldHighlight = Highlight
 	unitFrame.oldLevel = Level
 
@@ -722,6 +804,7 @@ function NP:SetTargetFrame(frame)
 			if not frame.isGroupUnit then
 				frame.unit = "target"
 				frame.guid = UnitGUID("target")
+				NP:UpdatePlateGUID(frame)
 
 				self:RegisterEvents(frame)
 			end
@@ -745,6 +828,8 @@ function NP:SetTargetFrame(frame)
 
 			self:Update_Highlight(frame)
 			self:Update_CPoints(frame)
+			if self.Update_Runes then self:Update_Runes(frame) end
+			if self.Update_BossMods then self:Update_BossMods(frame) end
 			self:StyleFilterUpdate(frame, "PLAYER_TARGET_CHANGED")
 			self:ForEachVisiblePlate("ResetNameplateFrameLevel") --keep this after `StyleFilterUpdate`
 		end
@@ -982,6 +1067,19 @@ function NP:UPDATE_MOUSEOVER_UNIT()
 				end
 			end
 		end
+	else
+		for frame in pairs(self.VisiblePlates) do
+			if frame.UnitType == "FRIENDLY_NPC" or frame.UnitType == "ENEMY_NPC" then
+				if UnitExists("mouseover") and UnitName("mouseover") == frame.UnitName and self:GetUnitTypeFromUnit("mouseover") == frame.UnitType then
+					if self.Update_QuestIcons then self:Update_QuestIcons(frame) end
+				end
+			end
+			if UnitExists("mouseover") and UnitName("mouseover") == frame.UnitName and self:GetUnitTypeFromUnit("mouseover") == frame.UnitType then
+				if self.Update_Power then self:Update_Power(frame) end
+				if self.Update_PvPIndicator then self:Update_PvPIndicator(frame) end
+				if self.Update_Tags then self:Update_Tags(frame) end
+			end
+		end
 	end
 end
 
@@ -1215,6 +1313,10 @@ function NP:Initialize()
 	self.levelStep = 2
 
 	self:UpdateCVars()
+
+	if self.BossMods_RegisterCallbacks then
+		self:BossMods_RegisterCallbacks()
+	end
 
 	local ElvNP_Test = CreateFrame("Button", "ElvNP_Test")
 	ElvNP_Test:Point("BOTTOM", UIParent, "BOTTOM", 0, 250)
