@@ -4288,8 +4288,79 @@ E.Options.args.nameplate = {
 						}
 					}
 				},
-				arrows = {
+				classpowerGroup = {
 					order = 11,
+					type = "group",
+					name = L["Class Resources"],
+					guiInline = true,
+					hidden = function() return E.myclass ~= "DEATHKNIGHT" end,
+					get = function(info)
+						return E.db.nameplates.units.TARGET.classpower[info[#info]]
+					end,
+					set = function(info, value)
+						E.db.nameplates.units.TARGET.classpower[info[#info]] = value
+						NP:ConfigureAll()
+					end,
+					args = {
+						enable = {
+							order = 1,
+							type = "toggle",
+							name = L["Enable"]
+						},
+						classColor = {
+							order = 2,
+							type = "toggle",
+							name = L["Use Class Color"],
+							disabled = function() return not E.db.nameplates.units.TARGET.classpower.enable end
+						},
+						autoWidth = {
+							order = 3,
+							type = "toggle",
+							name = L["Match Frame Width"],
+							desc = L["Automatically match the width of the nameplate health bar."],
+							disabled = function() return not E.db.nameplates.units.TARGET.classpower.enable end
+						},
+						width = {
+							order = 4,
+							type = "range",
+							name = L["Width"],
+							min = 40, max = 300, step = 1,
+							disabled = function()
+								local db = E.db.nameplates.units.TARGET.classpower
+								return not db.enable or db.autoWidth ~= false
+							end,
+							set = function(_, value)
+								local db = E.db.nameplates.units.TARGET.classpower
+								db.width = value
+								db.autoWidth = false
+								NP:ConfigureAll()
+							end
+						},
+						height = {
+							order = 5,
+							type = "range",
+							name = L["Height"],
+							min = 3, max = 30, step = 1,
+							disabled = function() return not E.db.nameplates.units.TARGET.classpower.enable end
+						},
+						xOffset = {
+							order = 6,
+							type = "range",
+							name = L["X-Offset"],
+							min = -100, max = 100, step = 1,
+							disabled = function() return not E.db.nameplates.units.TARGET.classpower.enable end
+						},
+						yOffset = {
+							order = 7,
+							type = "range",
+							name = L["Y-Offset"],
+							min = -100, max = 100, step = 1,
+							disabled = function() return not E.db.nameplates.units.TARGET.classpower.enable end
+						}
+					}
+				},
+				arrows = {
+					order = 12,
 					name = L["Arrow Texture"],
 					type = "multiselect",
 					customWidth = 80,
@@ -4400,4 +4471,39 @@ for i = 1, 5 do
 			NP:ConfigureAll()
 		end
 	}
+end
+
+if E.myclass == "DEATHKNIGHT" then
+	local runeNames = {
+		[1] = L["COMBAT_TEXT_RUNE_BLOOD"],
+		[2] = L["COMBAT_TEXT_RUNE_UNHOLY"],
+		[3] = L["COMBAT_TEXT_RUNE_FROST"],
+		[4] = L["COMBAT_TEXT_RUNE_DEATH"]
+	}
+
+	E.Options.args.nameplate.args.generalGroup.args.colorsGroup.args.classResources = {
+		order = 6,
+		type = "group",
+		name = L["Class Resources"],
+		guiInline = true,
+		args = {}
+	}
+
+	for i = 1, 4 do
+		E.Options.args.nameplate.args.generalGroup.args.colorsGroup.args.classResources.args["RUNE_" .. i] = {
+			type = "color",
+			order = i,
+			name = runeNames[i],
+			get = function()
+				local t = E.db.nameplates.colors.classResources.DEATHKNIGHT[i]
+				local d = P.nameplates.colors.classResources.DEATHKNIGHT[i]
+				return t.r, t.g, t.b, t.a, d.r, d.g, d.b
+			end,
+			set = function(_, r, g, b)
+				local t = E.db.nameplates.colors.classResources.DEATHKNIGHT[i]
+				t.r, t.g, t.b = r, g, b
+				NP:ConfigureAll()
+			end
+		}
+	end
 end

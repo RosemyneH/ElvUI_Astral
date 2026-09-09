@@ -437,6 +437,7 @@ P.nameplates = {
 			},
 			classpower = {
 				enable = true,
+				autoWidth = true,
 				classColor = false,
 				height = 7,
 				sortDirection = "NONE",

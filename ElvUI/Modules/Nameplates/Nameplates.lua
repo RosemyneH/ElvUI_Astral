@@ -92,6 +92,7 @@ function NP:SetFrameScale(frame, scale, noPlayAnimation)
 		self:Configure_HealthBarScale(frame, scale, noPlayAnimation)
 		self:Configure_CastBarScale(frame, scale, noPlayAnimation)
 		self:Configure_CPointsScale(frame, scale, noPlayAnimation)
+		if self.Configure_RunesScale then self:Configure_RunesScale(frame, scale, noPlayAnimation) end
 		frame.currentScale = scale
 	end
 end
@@ -412,6 +413,7 @@ function NP:OnShow(isConfig, dontHideHighlight)
 		NP:Update_HealthBar(frame)
 
 		NP:Configure_CPoints(frame, true)
+		if NP.Configure_Runes then NP:Configure_Runes(frame, true) end
 
 		NP:Configure_Level(frame)
 		NP:Configure_Name(frame)
@@ -818,6 +820,7 @@ function NP:SetTargetFrame(frame)
 				self:Configure_CastBar(frame)
 				self:Configure_Elite(frame)
 				self:Configure_CPoints(frame)
+				if self.Configure_Runes then self:Configure_Runes(frame) end
 
 				self:RegisterEvents(frame)
 
@@ -856,6 +859,7 @@ function NP:SetTargetFrame(frame)
 		end
 
 		self:Update_CPoints(frame)
+		if self.Update_Runes then self:Update_Runes(frame) end
 
 		if not frame.AlphaChanged then
 			if hasTarget then
