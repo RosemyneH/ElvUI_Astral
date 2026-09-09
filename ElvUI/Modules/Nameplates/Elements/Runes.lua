@@ -18,7 +18,8 @@ function NP:Runes_SetBarColor(bar, r, g, b)
 end
 
 function NP:Runes_GetColor(runeType, classColor)
-	local colors = NP.db.colors.classResources.DEATHKNIGHT
+	local classResources = NP.db.colors.classResources or P.nameplates.colors.classResources
+	local colors = classResources.DEATHKNIGHT
 	if classColor then
 		return classColor.r, classColor.g, classColor.b
 	end
