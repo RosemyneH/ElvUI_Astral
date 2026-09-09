@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.40](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.40) (2026-09-09)
+
+### Fixes
+
+* Death Knight nameplate runes no longer crash when targeting units
+
 ## [7.39](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.39) (2026-09-07)
 
 ### Features
