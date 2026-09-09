@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.41](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.41) (2026-09-09)
+
+### Features
+
+* Death Knight nameplate runes add Class Resources options, match health bar width by default, and scale with the target nameplate preset
+
+### Fixes
+
+* DK nameplate runes only show on the current target, hide correctly when retargeting, and animate cooldown recharge
+
 ## [7.40](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.40) (2026-09-09)
 
 ### Fixes
