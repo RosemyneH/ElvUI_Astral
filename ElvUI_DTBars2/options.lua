@@ -1,5 +1,4 @@
-﻿local E, _, V, P, G = unpack(ElvUI);
-local L = E.Libs.ACL:GetLocale('ElvUI', E.global.general.locale or 'enUS')
+﻿local E, L, V, P, G = unpack(ElvUI);
 local tcopy = table.copy
 local DT = E:GetModule('DataTexts')
 local DB = E:GetModule('DTBars2')
@@ -193,10 +192,10 @@ function DB:GetOptions()
 				set = function(info, value) E.global.dtbarsSetup.y = value end,
 				hidden = function() return not E.global.dtbarsSetup.advanced end,
 			},
-			strata = {
+			frameStrata = {
 				order = 54,
 				type = 'select',
-				name = L["Strata"],
+				name = L["Frame Strata"] or L["Strata"] or "Strata",
 				desc = L["Defines on what layer of the UI your panel will be: higher layer/number allows the panel to overlap more other frames. If you are not sure, leave this option at \"2. Low\""],
 				get = function(info) return E.global.dtbarsSetup.strata end,
 				set = function(info, value) E.global.dtbarsSetup.strata = value end,
@@ -364,10 +363,10 @@ function DB:GetOptions()
 					set = function(info, value) E.global.dtbars[panelname].y = value; E:StaticPopup_Show("GLOBAL_RL") end,
 					hidden = function() return not E.global.dtbarsSetup.advanced end,
 				},
-				strata = {
+				frameStrata = {
 					order = 54,
 					type = 'select',
-					name = L["Strata"],
+					name = L["Frame Strata"] or L["Strata"] or "Strata",
 					desc = L["Defines on what layer of the UI your panel will be: higher layer/number allows the panel to overlap more other frames. If you are not sure, leave this option at \"2. Low\""],
 					get = function(info) return E.global.dtbars[panelname].strata end,
 					set = function(info, value) E.global.dtbars[panelname].strata = value; E:StaticPopup_Show("GLOBAL_RL") end,
