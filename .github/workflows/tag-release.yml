@@ -1,0 +1,70 @@
+name: Tag Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (e.g. v7.42)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+      - name: Resolve tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build AddOns zip
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          mkdir -p dist
+          zip -r "dist/ElvUI_Astral-${TAG}.zip" \
+            ElvUI \
+            ElvUI_OptionsUI \
+            ElvUI_AddOnSkins \
+            ElvUI_DTBars2 \
+            ElvUI_Enhanced \
+            ElvUI_EnhancedFriendsList \
+            ElvUI_ExtraActionBars \
+            ElvUI_PartyDamage \
+            LICENSE README.md CHANGELOG.md
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          VERSION="${TAG#v}"
+          BODY=$(awk -v ver="$VERSION" '
+            /^## \[/ {
+              if ($0 ~ "\\[" ver "\\]") { p=1; next }
+              if (p) exit
+            }
+            p { print }
+          ' CHANGELOG.md)
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "dist/ElvUI_Astral-${TAG}.zip" --clobber
+          else
+            gh release create "$TAG" \
+              --title "Astral ${VERSION}" \
+              --notes "$BODY" \
+              "dist/ElvUI_Astral-${TAG}.zip"
+          fi
