@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.42](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.42) (2026-09-13)
+
+### Fixes
+
+* DT Bars 2 no longer errors opening `/ec` when the strata option label is missing from the locale
+* Options UI ensures AceGUI-3.0 loads before AceConfigDialog to prevent a missing library error
+
 ## [7.41](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.41) (2026-09-09)
 
 ### Features
