@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
 
+## [7.43](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.43) (2026-09-21)
+
+### Fixes
+
+* Totem bar Edit Mode mover stays sized with the bar instead of initializing at 0×0 (thanks @Paddy)
+
 ## [7.42](https://github.com/RosemyneH/ElvUI_Astral/releases/tag/v7.42) (2026-09-13)
 
 ### Fixes
