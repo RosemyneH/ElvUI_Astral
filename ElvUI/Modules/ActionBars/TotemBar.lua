@@ -196,6 +196,12 @@ function AB:PositionAndSizeBarTotem()
 	MultiCastActionBarFrame:Width((buttonWidth * (2 + numActiveSlots)) + (buttonSpacing * (2 + numActiveSlots - 1)))
 	bar:Height(buttonHeight + 2)
 	MultiCastActionBarFrame:Height(buttonHeight + 2)
+
+	-- ʕ •ᴥ•ʔ✿ @Paddy — keep Edit Mode mover synced with bar dimensions ✿ ʕ •ᴥ•ʔ
+	if bar.mover and not InCombatLockdown() then
+		bar.mover:Size(bar:GetSize())
+	end
+
 	bar.db = self.db.barTotem
 
 	local point, barAnchor, relativePoint = MultiCastActionBarFrame:GetPoint()
@@ -361,5 +367,12 @@ function AB:CreateTotemBar()
 
 	self:SecureHook("ShowMultiCastActionBar")
 
+	-- ʕ •ᴥ•ʔ✿ @Paddy — size the bar before CreateMover so the mover is not 0x0 ✿ ʕ •ᴥ•ʔ
+	self:PositionAndSizeBarTotem()
+
 	E:CreateMover(bar, "ElvBar_Totem", TUTORIAL_TITLE47, nil, nil, nil,"ALL,ACTIONBARS", nil, "actionbar,barTotem")
+
+	if bar.mover and not InCombatLockdown() then
+		bar.mover:Size(bar:GetSize())
+	end
 end
